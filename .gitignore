@@ -1,0 +1,42 @@
+# Lines starting with '#' are considered comments.
+# Ignore any file named foo.txt.
+foo.txt
+# Ignore (generated) html files,
+*.html
+# except foo.html which is maintained by hand.
+!foo.html
+# Ignore objects and archives binaries and tmp
+*.[oa]
+*.tmp
+*.bin
+/bin
+/Documents/*.html
+/testResults
+*/build
+# !/build/.gitkeep
+*.lst
+*.sct
+*.crf
+*.o
+*.d
+*.2i
+*._2i
+*.map
+*.htm
+*.dep
+*.axf
+*.fed
+*.l2p
+*.lnp
+*.out
+
+
+
+
+
+
+
+
+
+
+
