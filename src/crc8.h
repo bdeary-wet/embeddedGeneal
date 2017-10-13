@@ -43,5 +43,11 @@ static inline uint8_t crc8(uint8_t lastCrc, uint8_t val)
 
 uint8_t calcCrc8(uint8_t lastCrc, uint8_t *buf, size_t bufLen);
 
+#ifdef INCLUDE_HAMMING_74
+uint8_t HamEncode(uint8_t in);
+uint8_t HamDecode(uint8_t in);
+#endif
+
+
 
 #endif // _CRC8_H
