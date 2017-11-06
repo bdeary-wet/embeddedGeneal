@@ -12,6 +12,7 @@ foo.txt
 /bin
 /Documents/*.html
 /testResults
+/build/test
 */build
 # !/build/.gitkeep
 *.lst
