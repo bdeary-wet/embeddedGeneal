@@ -56,10 +56,10 @@
   :testfail: ".fail"
   :dependencies: ".d"
 :unity:
-  :vendor_path: C:/Users/User/dev/myDev/vendor/ceedling/vendor
+  :vendor_path: C:/Users/cdev/dev/dev/vendor/ceedling/vendor
   :defines: []
 :cmock:
-  :vendor_path: C:/Users/User/dev/myDev/vendor/ceedling/vendor
+  :vendor_path: C:/Users/cdev/dev/dev/vendor/ceedling/vendor
   :defines: []
   :mock_prefix: mock_
   :when_no_prototypes: :warn
@@ -77,7 +77,7 @@
   :verbosity: 3
   :unity_helper: false
 :cexception:
-  :vendor_path: C:/Users/User/dev/myDev/vendor/ceedling/vendor
+  :vendor_path: C:/Users/cdev/dev/dev/vendor/ceedling/vendor
   :defines: []
 :test_runner:
   :includes: []
