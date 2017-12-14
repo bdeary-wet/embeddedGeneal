@@ -13,3 +13,6 @@ crc8 functions
 
 ####  qmacs.h
 C queue macros for simple fifos
+
+#### state
+General State machine with timed states, target state, and error state callbacks

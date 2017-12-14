@@ -64,7 +64,9 @@ typedef struct sm_s
     uint8_t timedOut;
 } sm_t;
 
-// user provided timebase function
+// user provided timebase function, must be implimented in the user code to return a
+// timer value as uint32_t subject to normal unsigned rollover math.
+// The timeout function operates on the ticks provided by this function.
 uint32_t SmTimeBase(void);
 
 
@@ -156,6 +158,17 @@ stRet_t SmProcess(sm_t *st);
  */
 stRet_t SmSetNext(sm_t *st, uint32_t state);
  
+
+ /**
+ *  @brief Set the timeout for the state
+ *  
+ *  @param [in] st pointer to the state machine object
+ *  @param [in] ticks the timeout value in user supplied timer ticks
+ *  @param [in] cb an optional callback function to be called before the state function itself.
+ *  @return SM_OK, SM_ERR, or SM_BAD_PARAMETER
+ *  
+ *  @details Details
+ */
 stRet_t SmSetTimeout(sm_t *st, uint32_t ticks, smTrigCb cb);
  
  
