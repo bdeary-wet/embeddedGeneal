@@ -64,48 +64,11 @@ typedef struct sm_s
     uint8_t timedOut;
 } sm_t;
 
-// user provided timebase function, must be implimented in the user code to return a
+// user provided timebase function, must be implemented in the user code to return a
 // timer value as uint32_t subject to normal unsigned rollover math.
 // The timeout function operates on the ticks provided by this function.
 uint32_t SmTimeBase(void);
 
-
-/**
- *  Basic Form
- *  stRet_t aState(sm_t *st, smPhase_t phase)
- *  {
- *      stRet_t rt = SM_ERR;
- *      switch (phase)
- *      {
- *          case SMP_INIT:  // any state initialization 
- *  
- *          // optional initialization code here
- *  
- *          rt =  SM_OK;
- *          break;
- *   
- *          case SMP_RUN:   // normal state code
- *  
- *          // normal state code here
- *  
- *          rt =  SM_OK;
- *          break;
- *  
- *          case SMP_EXIT:  // any state tear down code
- *  
- *          // optional state tear down code here
- *  
- *          rt = SM_OK;
- *          break;
- *      }
- *      return rt;
- *  }
- *  
- */
-
- 
- 
- 
  
  /**
  *  @brief Initialize the state machine object 
@@ -152,7 +115,7 @@ stRet_t SmProcess(sm_t *st);
  *           It is assumed the user would maintain an associated enumeration
  *           associating a value to a index in the function table.
  *           In general this is not necessary and the function names themselves
- *           form an set of good enumerations albeit instance specific ones.
+ *           form a set of good enumerations albeit instance specific ones.
  *           If no state table was provided, setting to state 0 will always
  *           succeed with setting next to NULL (the off state)
  */
