@@ -52,7 +52,10 @@ void TaskerInit(tasker_t *to, taskerFunction_f *jumpTable, unsigned int tableLen
  *  @details Allows you to set one event by event number (not event mask)
  *           Events outside the legal range can't be set. 
  */
-void TaskerSetEvent(tasker_t *to, unsigned eventNo);
+static inline void TaskerSetEvent(tasker_t *to, unsigned eventNo)
+{
+    if(eventNo < to->jumpTable.tableLen) to->event |= 1 << eventNo;
+}
 
 /** @brief Set one or more events by mask
  *  
@@ -63,7 +66,10 @@ void TaskerSetEvent(tasker_t *to, unsigned eventNo);
  *           mask.  No error checking is performed, don't set event outside of
  *           the legal mask.
  */
-void TaskerSetEvents(tasker_t *to, taskerMask_t mask);
+static inline void TaskerSetEvents(tasker_t *to, taskerMask_t mask)
+{
+    to->event |= mask;    
+}
 
 // The following functions represent different ways for the background code to
 // operate on a tasker object. 
@@ -136,5 +142,6 @@ void TaskerRoundRobinTillNone(tasker_t *to);
  *           tasks before lower ones.
  */
 void TaskerPrioritizedTillNone(tasker_t *to);
+
 
 #endif // _TASKER_H

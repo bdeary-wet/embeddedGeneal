@@ -92,17 +92,6 @@ void TaskerPrioritizedTillNone(tasker_t *to)
 }
 
 
-// user function to set an event
-void TaskerSetEvent(tasker_t *to, unsigned eventNo)
-{
-    if(eventNo < to->jumpTable.tableLen) to->event |= 1 << eventNo;
-}
-
-void TaskerSetEvents(tasker_t *to, taskerMask_t mask)
-{
-    to->event |= mask;
-}
-
 // convenience function for init. Could also static int at compile time. 
 void TaskerInit(tasker_t *to, taskerFunction_f *jumpTable, unsigned int tableLen)
 {
