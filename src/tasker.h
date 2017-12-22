@@ -102,7 +102,7 @@ int TaskerRoundRobin(tasker_t *to);
  */
 int TaskerPrioritized(tasker_t *to);
 
-/** @brief Walks through the list low to high an executes all tasks with events
+/** @brief Walks through the list low to high and executes all tasks with events
  *         set at the time of entry in order.
  *  
  *  @param [in] to pointer to tasker object
