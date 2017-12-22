@@ -2,6 +2,10 @@
 This is just bits an pieces of useful code. Some work together to form the
 base for simple embedded systems where an RTOS is not needed.
 
+I use CEEDLING with GCC to do unit testing and off target development.
+CEEDLING is a great wrapper around the Unity unit test framework with CMock and CException.
+Last seen at http://www.throwtheswitch.org/ceedling/
+
 ## Sub projects
 
 #### crc8
