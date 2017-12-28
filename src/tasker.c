@@ -70,7 +70,7 @@ int TaskerOnePass(tasker_t *to)
     {   // if event set and function defined clear event and jump
         if (events & 1) 
         {
-            to->event &= 1 << next;
+            to->event &= ~(1 << next);
             if (to->jumpTable.table[next]) to->jumpTable.table[next](next); 
             ran++;  // mark events where set
         }
