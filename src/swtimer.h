@@ -117,12 +117,4 @@ static inline void SW_ResetTimer32(timerObj32_t *t)
 
 
 
-
-
-
-
-
-
-
-
 #endif
