@@ -1,8 +1,17 @@
 #include "generalQueue.h"
 #include <string.h>
 
+typedef struct genQ_s
+{
+    uint8_t *base;      // buffer start
+    uint8_t *next;      // next entry point
+    uint8_t *last;      // next source point
+    uint8_t *end;       // address of last object in buffer
+    uint_fast16_t objectSize; // size of the object
+} genQ_t;
+
 #define BUMP(val) \
-val >= q->end ? q->base: val + q->objectSize;
+(val) >= q->end ? q->base: (val) + q->objectSize;
 
 
 int GenQ_Init(genQ_t *q, void *buffer, uint16_t objectSize, uint16_t totalObjects)
@@ -17,6 +26,8 @@ int GenQ_Init(genQ_t *q, void *buffer, uint16_t objectSize, uint16_t totalObject
     
 }
 
+// always leaves one empty space, so putter only modifies next
+// and getter only modifies last
 int GenQ_Put(genQ_t *q, void const *obj)
 {
     uint8_t *next = BUMP(q->next);
@@ -28,7 +39,7 @@ int GenQ_Put(genQ_t *q, void const *obj)
 
 int GenQ_Get(genQ_t *q, void *obj)
 {
-    if (q->next == q->last) return -1; // queue empty
+    if (q->next == q->last) return -2; // queue empty
     memcpy(obj, q->last, q->objectSize);
     q->last = BUMP(q->last);
     return 0;    

@@ -16,14 +16,7 @@
 #include <stdint.h>
 
 
-typedef struct
-{
-    uint8_t *base;      // buffer start
-    uint8_t *next;      // next entry point
-    uint8_t *last;      // next source point
-    uint8_t *end;       // address of last object in buffer
-    uint_fast16_t objectSize; // size of the object
-} genQ_t;
+typedef struct genQ_s genQ_t;
 
 
 /**
@@ -82,6 +75,9 @@ int GenQ_IsData(genQ_t *q);
  *  @return The configure size of queued objects 
  *  
  *  @details Returns the original objectSize parameter used to initialize the queue.
+ *           This is useful for intermediate functions that don't care about the
+ *           contained object but must do some buffer operation on an entry,
+ *           like copy it to another buffer or message structure.
  */
 uint16_t GenQ_ObjectSize(genQ_t *q);
 
