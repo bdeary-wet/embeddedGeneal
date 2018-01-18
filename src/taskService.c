@@ -1,88 +1,66 @@
 #include "taskService.h"
-#include "generalDef.h"
+#include "taskServiceClass.h"
 
+#ifdef TEST
+taskMasterRecord_t *tmr;
+#else
+static taskMasterRecord_t *tmr;
+#endif
 
-typedef struct
+void TS_Background(void)
 {
-    taskFunc_f task;
-    genQ_t *q;
-    uint16_t scheduled; // scheduled counter
-} taskTableEntry_t;
-
-
-// return needsize to store expected tasks
-size_t TS_InitGetSize(int expectedTasks)
-{
-    return expectedTasks * sizeof(taskTableEntry_t);
+    TSC_DoTasks(tmr);
 }
-
-static taskTableEntry_t *ttable;
-static uint8_t ttLen;
-static int16_t nextInTable = -1;
-static int16_t runningTask = -1;
 
 int TS_Init(uint32_t *allocatedTableSpace, size_t sizeOfTableSpace)
 {
-    ttable = (taskTableEntry_t*)allocatedTableSpace;
-    nextInTable = 0;
-    runningTask = -1;
-    ttLen = sizeOfTableSpace/sizeof(taskTableEntry_t);
-    return(ttLen);
+    tmr = NULL;
+    return TSC_Init(&tmr, allocatedTableSpace, sizeOfTableSpace);
+
 }
 
-int TS_AddTask(taskFunc_f task)
+// returns task number
+taskHandle_t TS_AddTask(taskFunc_f task)
 {
-    if (nextInTable >= ttLen) return TS_TableFull;
-    if (nextInTable < 0 || !ttable) return TS_NoTable;
-    ttable[nextInTable].task = task;
-    ttable[nextInTable].q = NULL;
-    ttable[nextInTable].scheduled = 0;
-    return nextInTable++;    
+    return TSC_AddTask(tmr, task);
 }
 
-
-int TS_AddTaskWithQueue(taskFunc_f task, genQ_t *q)
+taskHandle_t TS_AddTaskWithQueue(taskFunc_f task, genQ_t *q)
 {
-    if (nextInTable >= ttLen) return TS_TableFull;
-    if (nextInTable < 0 || !ttable) return TS_NoTable;
-    ttable[nextInTable].task = task;
-    ttable[nextInTable].q = q;
-    ttable[nextInTable].scheduled = 0;
-    return nextInTable++;     
+    return TSC_AddTaskWithQueue(tmr, task, q);
 }
 
-
-int TS_SignalTask(uint8_t taskNo)
+int TS_SignalTask(taskHandle_t task)
 {
-    if (taskNo >= nextInTable) return TS_TaskNotDefined;
-    ttable[taskNo].scheduled++;
+    return TSC_SignalTask(tmr, task);
 }
 
-
-int TS_Put(uint8_t taskNo, void const *val)
+int TS_Put(taskHandle_t task, void const *val)
 {
-    if (taskNo >= nextInTable) return TS_TaskNotDefined;
-    ttable[taskNo].scheduled++;
-    return GenQ_Put(ttable[taskNo].q, val);
+    return TSC_Put(tmr, task ,val);
 }
 
-int TS_Get(void *val)
+int TS_Get( void *val)
 {
-    if (runningTask < 0) return TS_IllegalCall;
-    return GenQ_Get(ttable[runningTask].q, val);
+    return TSC_Get(tmr, val);
 }
 
 int TS_Test(void)
 {
-    if (runningTask < 0) return TS_IllegalCall;
-    int val = ttable[runningTask].scheduled;
-    ttable[runningTask].scheduled = 0;
-    return val;
+    return TSC_Test(tmr);
 }
 
-
-genQ_t *TS_GetQueueObjectOutside(uint8_t taskNo)
+void TS_Yield(void)
 {
-    if (taskNo >= nextInTable) return NULL;
-    return ttable[taskNo].q;
+    TSC_Yield(tmr);
 }
+
+genQ_t *TS_GetQueueObject(uint8_t taskNo)
+{
+    return TSC_GetQueueObject(tmr, taskNo);
+}
+
+size_t TS_InitGetSize(int expectedTasks)
+{
+    return TSC_InitGetSize(expectedTasks);
+}    

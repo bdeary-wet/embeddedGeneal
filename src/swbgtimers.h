@@ -3,6 +3,9 @@
  *  @brief Interface and Class definition for background timers
  *  
  */
+/** \addtogroup services
+ *  @{
+ */
 #ifndef _SWBGTIMERS_H_
 #define _SWBGTIMERS_H_
 #include "swtimers.h"
@@ -54,5 +57,5 @@ void SWT_BackgroundTimerCallback(
             uint32_t timeInMs,
             timerCallback cb, intptr_t context,
             uint32_t runCount);            
-
+/** @}*/
 #endif  // _SWBGTIMERS_H_

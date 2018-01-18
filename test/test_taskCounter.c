@@ -5,11 +5,11 @@
 uintptr_t space[4];
 tcHandle_t task1;
 
-__Testable TC_Counter_t volatile **counterPointer;
+__Testable tcCounter_t volatile **counterPointer;
 __Testable size_t counters;
 __Testable size_t allocated;
 
-static TC_Counter_t fixedCounter;
+static tcCounter_t fixedCounter;
 
 void setUp(void)
 {
@@ -23,8 +23,8 @@ void tearDown(void)
 
 void test_tc_init(void)
 {
-    TC_Counter_t autoCounter;
-    TC_Counter_t *autoCounterAdd = &autoCounter;
+    tcCounter_t autoCounter;
+    tcCounter_t *autoCounterAdd = &autoCounter;
     TEST_ASSERT_EQUAL(2, TC_AssociateHandle(&autoCounter));
     TEST_ASSERT_EQUAL(3, TC_AssociateHandle(autoCounterAdd));
     TEST_ASSERT_EQUAL(4, TC_AssociateHandle(autoCounterAdd));

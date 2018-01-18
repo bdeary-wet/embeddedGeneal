@@ -13,6 +13,9 @@
  *  
  *  
  */
+/** \addtogroup usefulObjects
+ *  @{
+ */
 #ifndef _SW_TIMER_H_
 #define _SW_TIMER_H_
 
@@ -147,5 +150,6 @@ static inline void SW_ResetTimer32(timerObj32_t *t)
     t->timeObj.duration = 0;
 }
 
+ /** @} */
 
 #endif

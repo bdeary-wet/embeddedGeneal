@@ -2,6 +2,12 @@
  *  @file swtimers.h
  *  @brief Interface definition to software timer functions 
  *  
+ *  
+ *  
+ *  
+ */
+ /** \addtogroup services
+ *  @{
  */
 #ifndef _SWTIMERS_H
 #define _SWTIMERS_H
@@ -91,6 +97,6 @@ size_t SWT_sizeofTimer(void);
  */
 void SWT_InitSysTimers(void *space, size_t spaceSize);
 
-
+/** @}*/
 
 #endif // _SWTIMERS_H

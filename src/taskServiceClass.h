@@ -20,36 +20,37 @@
  *  
  *    
  */
-/** \addtogroup services
+/** \addtogroup classes
  *  @{
  */
-#ifndef _TASKSERVICE_H
-#define _TASKSERVICE_H
+#ifndef _TASKSERVICECLASS_H
+#define _TASKSERVICECLASS_H
 #include <stdint.h>
 #include <stddef.h>
 #include "generalQueue.h"
 #include "generalDef.h"
 
-
 /// Tasks are void functions
 typedef void (*taskFunc_f)(void);
-typedef intptr_t taskHandle_t;
 
-/* 
+typedef intptr_t taskHandle_t;
+typedef uint16_t taskCnt_t;
+typedef struct tmrStruct_s taskMasterRecord_t;
+
 /// @brief Task functions return TS_ErrorCodes if necessary else they return 0
 typedef enum
 {
-    TS_BadParameter = -10,
-    TS_TableFull = -9,
-    TS_NoTable = -8,
-    TS_TaskNotDefined = -7,
-    TS_IllegalCall = -6,
-    TS_QueueEmpty = -2,
-    TS_QueueFull = -1,
-    TS_OK = 0,
+    TSC_BadParameter = -10,
+    TSC_TableFull = -9,
+    TSC_NoTable = -8,
+    TSC_TaskNotDefined = -7,
+    TSC_IllegalCall = -6,
+    TSC_QueueEmpty = -2,
+    TSC_QueueFull = -1,
+    TSC_OK = 0,
     
     
-} TS_ErrorCodes_e; */
+} TSC_ErrorCodes_e;
 
 /**
  *  @brief Called prior to While Loop in background task to indicate to required
@@ -63,9 +64,8 @@ typedef enum
  *           passed to the seconf setup function and the tasks are then
  *           added to the system.
  *  
- *  Copyright 2018
  */
-size_t TS_InitGetSize(int expectedTasks);
+size_t TSC_InitGetSize(int expectedTasks);
 
 /**
  *  @brief Brief
@@ -79,7 +79,9 @@ size_t TS_InitGetSize(int expectedTasks);
  *  
  *  Copyright 2018
  */
-int TS_Init(uint32_t *allocatedTableSpace, size_t sizeOfTableSpace);
+int TSC_Init(taskMasterRecord_t **tmr,
+             uint32_t *allocatedTableSpace,
+             size_t sizeOfTableSpace);
 
 
 /**
@@ -91,9 +93,8 @@ int TS_Init(uint32_t *allocatedTableSpace, size_t sizeOfTableSpace);
  *  
  *  @details Details
  *  
- *  Copyright 2018
  */
-taskHandle_t TS_AddTask(taskFunc_f task);
+taskHandle_t TSC_AddTask(taskMasterRecord_t *tmr, taskFunc_f task);
 
 /**
  *  @brief Add a task to the table with an associated queue structure.
@@ -105,10 +106,10 @@ taskHandle_t TS_AddTask(taskFunc_f task);
  *  @details Adds a task to the task table with an associoated queue structure.
  *           Using the TS_PutQueue function below will schedule the task to
  *           run.
- *  
- *  Copyright 2018
  */
-taskHandle_t TS_AddTaskWithQueue(taskFunc_f task, genQ_t *q);
+taskHandle_t TSC_AddTaskWithQueue(taskMasterRecord_t *tmr, 
+                                  taskFunc_f task, 
+                                  genQ_t *q);
 
 /** @brief Signal a task to run
  *  
@@ -117,7 +118,7 @@ taskHandle_t TS_AddTaskWithQueue(taskFunc_f task, genQ_t *q);
  *  
  *  @details Details
  */
-int TS_SignalTask(taskHandle_t taskNo);
+int TSC_SignalTask(taskMasterRecord_t *tmr, taskHandle_t taskNo);
 
 /** @brief Put a value into a task's queue and schedule the task
  *  
@@ -129,7 +130,8 @@ int TS_SignalTask(taskHandle_t taskNo);
  *           the size of the val object is previously defined when the
  *           task was associated with the queue.
  */
-int TS_Put(taskHandle_t task, void const *val);
+int TSC_Put(taskMasterRecord_t *tmr, taskHandle_t task, void const *val);
+
 
 /** @brief Get the next value from the associated queue of the current running
  *         task.
@@ -140,7 +142,7 @@ int TS_Put(taskHandle_t task, void const *val);
  *  @details Returns the next value in the queue associated with the currently
  *           running task.
  */
-int TS_Get(void *val);
+int TSC_Get(taskMasterRecord_t *tmr, void *val);
 
 /** @brief Tests to see if there is data in the queue associated with the 
  *         currently running task.
@@ -149,7 +151,7 @@ int TS_Get(void *val);
  *  
  *  @details Details
  */
-int TS_Test(void);
+int TSC_Test(taskMasterRecord_t *tmr);
 
 /** @brief Yield to higher priority task
  *  
@@ -157,27 +159,27 @@ int TS_Test(void);
  *           run time back to a higher priority task. Processing will continue
  *           at the same point when returned.
  */
-void TS_Yield(void);
+void TSC_Yield(taskMasterRecord_t *tmr);
 
 /** @brief helper function to allow a function outside of a running task to
  *         dequeue data from the queue.
  *  
- *  @param [in] taskNo the task number
+ *  @param [in] task the task handle
  *  @return TS_QueueEmpty, 0 or error code
  *  
  *  @details Details
  */
-genQ_t *TS_GetQueueObjectOutside(taskHandle_t taskNo);
+genQ_t *TSC_GetQueueObject(taskMasterRecord_t *tmr, taskHandle_t task);
 
 
-/** @brief The main background task processor.
+/** @brief The prioritized task processor.
  *  
  *  @return returns when there is no task to schedule
  *  
- *  @details Details
+ *  @details Runs through the list of all tasks prioritized by entry,
+ *           earlier run before later.
  */
-void TS_Background(void);
-
+void TSC_DoTasks(taskMasterRecord_t *tmr);
 
 
 /** @}*/
@@ -185,4 +187,4 @@ void TS_Background(void);
 
 
 
-#endif // _TASKSERVICE_H
+#endif // _TASKSERVICECLASS_H

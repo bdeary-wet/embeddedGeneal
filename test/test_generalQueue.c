@@ -3,14 +3,6 @@
 #include <string.h>
 
 // copied from generalQueue.c for testing internals
-typedef struct genQ_s
-{
-    uint8_t *base;      // buffer start
-    uint8_t *next;      // next entry point
-    uint8_t *last;      // next source point
-    uint8_t *end;       // address of last object in buffer
-    uint_fast16_t objectSize; // size of the object
-} genQ_t;
 
 void setUp(void)
 {
@@ -90,7 +82,8 @@ void test_generalQueue_Get(void)
     anObj.v8 = 123;
     anObj.v16 = 4567;
     memset(bufSpace, 0, sizeof(bufSpace));
-    TEST_ASSERT_EQUAL(0, GenQ_Init(&queue, bufSpace, sizeof (struct myObj), OBJECTS));
+    
+    TEST_ASSERT_EQUAL(0, ARRAY_TO_Q(bufSpace, queue));
     // test IsData
     TEST_ASSERT_EQUAL(0, GenQ_IsData(&queue));
     
@@ -131,6 +124,5 @@ void test_generalQueue_Get(void)
     // queue should be empty
         // test IsData
     TEST_ASSERT_EQUAL(0, GenQ_IsData(&queue));
-    
-    
+
 }

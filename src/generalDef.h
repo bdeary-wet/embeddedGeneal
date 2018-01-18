@@ -20,8 +20,10 @@ __set_PRIMASK(protectedVar321); }
 #define DIM(arr) (sizeof(arr)/sizeof(arr[0]))
     
 // saturated unsigned inc and dec loose version, 
-#define USAT_INC(ui) (++(ui)?(ui):--(ui))
-#define USAT_DEC(ui) ((ui)?--(ui):(ui)
+#define USAT_INC(ui) do{ui = (ui)+1 ? (ui)+1:(ui);}while(0)
+#define USAT_DEC(ui) do{ui = (ui) ? (ui)-1:(ui);}while(0)
+
+
 
 
 #endif

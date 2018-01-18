@@ -11,14 +11,17 @@
  *           (won't roll over to zero).
  *  
  */
+ /** \addtogroup services
+ *  @{
+ */
 #ifndef _TASKCOUNTER_H
 #define _TASKCOUNTER_H
 #include <stdint.h>
 #include <stddef.h>
 
-/// @brief The system counter type is assumed to be 32 bits but can be changed
+/// @brief The system counter type is assumed to be 16 bits but can be changed
 ///        here globally if system is recompiled. 
-typedef uint32_t TC_Counter_t;
+typedef uint16_t tcCounter_t;
 
 /// @brief A system generated handle value
 typedef intptr_t tcHandle_t;
@@ -41,14 +44,36 @@ void TC_InitHandleService(void *space, size_t spaceSize);
  *  
  *  @details Details
  */
-tcHandle_t TC_AssociateHandle(TC_Counter_t volatile * myCounter);
+tcHandle_t TC_AssociateHandle(tcCounter_t volatile * myCounter);
 
-void TC_SignalTask(tcHandle_t task);
+/** @brief Signal the task (increment the counter)
+ *  
+ *  @param [in] taskNo The TaskNo to signal
+ *  
+ *  @details Details
+ */
+void TC_SignalTask(tcHandle_t taskNo);
 
-uint32_t TC_Test(tcHandle_t task);
-uint32_t TC_TestAndClear(tcHandle_t task);
+/** @brief Test the associated counter (return the value)
+ *  
+ *  @param [in] taskNo Parameter_Description
+ *  @return Return_Description
+ *  
+ *  @details Details
+ */
+tcCounter_t TC_Test(tcHandle_t task);
 
 
+/** @brief Test the and clear associated counter (return the value)
+ *  
+ *  @param [in] task Parameter_Description
+ *  @return Return_Description
+ *  
+ *  @details Details
+ */
+tcCounter_t TC_TestAndClear(tcHandle_t task);
 
+
+/** @}*/
 
 #endif // _TASKCOUNTER_H

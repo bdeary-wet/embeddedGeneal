@@ -9,7 +9,7 @@
 
 #define satuinc(val) do{if(!(++(val))) --(val);}while(0)
 
-__Testable TC_Counter_t volatile **counterPointer;
+__Testable tcCounter_t volatile **counterPointer;
 __Testable size_t counters;
 __Testable size_t allocated;
 
@@ -24,7 +24,7 @@ void TC_InitHandleService(void *space, size_t spaceSize)
     misuse = 0;
 }
 
-tcHandle_t TC_AssociateHandle(TC_Counter_t volatile * myCounter)
+tcHandle_t TC_AssociateHandle(tcCounter_t volatile * myCounter)
 {
     if (allocated >= counters) return 0;
     tcHandle_t handle = ++allocated;
@@ -37,14 +37,14 @@ void TC_SignalTask(tcHandle_t task)
     if (task && task <= allocated)
     {
         // do saturated inc
-        TC_Counter_t temp = *counterPointer[task-1] + 1;
+        tcCounter_t temp = *counterPointer[task-1] + 1;
         if (temp) *counterPointer[task-1] = temp;
         return;
     }
     satuinc(misuse);
 }
 
-TC_Counter_t TC_Test(tcHandle_t task) 
+tcCounter_t TC_Test(tcHandle_t task) 
 {
     if (task && task <= allocated)
     {
@@ -54,11 +54,11 @@ TC_Counter_t TC_Test(tcHandle_t task)
     return 0;
 }
 
-TC_Counter_t TC_TestAndClear(tcHandle_t task)
+tcCounter_t TC_TestAndClear(tcHandle_t task)
 {
     if (task && task <= allocated)
     {
-        TC_Counter_t temp = *counterPointer[task -1];
+        tcCounter_t temp = *counterPointer[task -1];
         *counterPointer[task-1] = 0;
         return temp;
     }
