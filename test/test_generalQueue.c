@@ -33,6 +33,29 @@ void test_generalQueue_Init(void)
     TEST_ASSERT_EQUAL(sizeof(struct myObj), GenQ_ObjectSize(&queue));
     
     
+    // Allocate a 5 space queue of 32bit ints on the stack
+    QBUILDER_ALLOCA(alq_pnt, int32_t, 5);
+    TEST_ASSERT_EQUAL(4, GenQ_ObjectSize(alq_pnt));
+
+    // allocate a 7 space queue of 16bit ints on heap
+    QBUILDER_MALLOC(mlq_pnt, int16_t, 7);
+    TEST_ASSERT_EQUAL(2, GenQ_ObjectSize(mlq_pnt));
+    free(mlq_pnt);
+   
+    // static allocation of byte queue length 10
+    QBUILDER_STATIC(bq_pnt, uint8_t, 10);
+    TEST_ASSERT_EQUAL(1, GenQ_ObjectSize(bq_pnt));
+    
+    // attach a queue object to an array of struct
+    struct {int i1; char c2; short int s3} sarray[7];
+    genQ_t sq;
+    ARRAY_TO_Q(sarray, sq);
+    TEST_ASSERT_EQUAL(sizeof(sarray[0]), GenQ_ObjectSize(&sq));
+    
+    
+    QBUILDER_ARRAY
+    
+    
 }
 
 
