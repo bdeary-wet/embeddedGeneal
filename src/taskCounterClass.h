@@ -43,6 +43,7 @@ tcHandle_t TCC_AssociateHandle(tcc_t *tcc, tcCounter_t volatile * myCounter,
  *  
  *  @details Function to increment the counter
  */
+
 intptr_t TCC_SignalUp(tcHandle_t taskNo);
 
 /** @brief Signal the task (decrement the counter)

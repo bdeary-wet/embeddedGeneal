@@ -2,8 +2,6 @@
 
 
 
-static swtBg_t *bgTimers;
-
 
 void SWT_BackgroundTimerCount(
             swtBg_t *swt, 
