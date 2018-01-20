@@ -20,7 +20,7 @@
  *  
  *    
  */
-/** \addtogroup services
+/** @addtogroup services
  *  @{
  */
 #ifndef _TASKSERVICE_H

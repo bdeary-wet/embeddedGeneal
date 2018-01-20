@@ -37,12 +37,22 @@ typedef struct
 } swTime16_t;
 
 /// helper macro used by the inline functions
-#define SW_TIMER_PASSED(timer, time) \
-  (time - (timer).start >= (timer).duration)
+/// test if timer has passed
+#define SW_TIMER_PASSED(theTimer, timeNow) \
+  (timeNow - (theTimer).start >= (theTimer).duration)
   
+/// Start a timer   
+#define SW_TIMER_SET(theTimer, theDuration, timeNow) \
+  (theTimer).start = timeNow; (theTimer).duration = theDuration;
   
-#define SW_TIMER_SET(timer, duration, time) \
-  (timer).start = time; (timer).duration = duration;
+/// set new match point one duration past last match point  
+#define SW_TIMER_CYCLE(theTimer) \
+  (theTimer).start += (theTimer).duration;
+  
+/// extend timer using existing duration  
+#define SW_TIMER_RESTART(theTimer, timeNow) \
+  (theTimer).start = timeNow
+  
   
 /** @brief set a timer relative to a time source
  *  

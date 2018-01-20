@@ -1,6 +1,7 @@
 #include "unity.h"
 #include "generalQueue.h"
 #include <string.h>
+#include <malloc.h>
 
 // copied from generalQueue.c for testing internals
 
@@ -32,7 +33,7 @@ void test_generalQueue_Init(void)
     
     TEST_ASSERT_EQUAL(sizeof(struct myObj), GenQ_ObjectSize(&queue));
     
-    
+    // Test the helper MACROs for allocating queues
     // Allocate a 5 space queue of 32bit ints on the stack
     QBUILDER_ALLOCA(alq_pnt, int32_t, 5);
     TEST_ASSERT_EQUAL(4, GenQ_ObjectSize(alq_pnt));
@@ -47,14 +48,14 @@ void test_generalQueue_Init(void)
     TEST_ASSERT_EQUAL(1, GenQ_ObjectSize(bq_pnt));
     
     // attach a queue object to an array of struct
-    struct {int i1; char c2; short int s3} sarray[7];
+    struct {int i1; char c2; short int s3;} sarray[7];
     genQ_t sq;
     ARRAY_TO_Q(sarray, sq);
     TEST_ASSERT_EQUAL(sizeof(sarray[0]), GenQ_ObjectSize(&sq));
     
-    
-    QBUILDER_ARRAY
-    
+    struct {int i1; char c2; uint64_t ll3;} sarray2[9];
+    QBUILDER_ARRAY(s2Q, sarray2);
+    TEST_ASSERT_EQUAL(sizeof(sarray2[0]), GenQ_ObjectSize(&s2Q));
     
 }
 

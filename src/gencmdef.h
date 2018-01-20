@@ -4,15 +4,20 @@
  */
 #ifndef _GENCMDEF_H_
 #define _GENCMDEF_H_
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#ifndef TEST
-#include "core_cmInstr.h"
-#else
-#define __get_PRIMASK() (0)
-#define __set_PRIMASK(pri) 
 
+#ifndef TEST
+ #include "core_cmInstr.h"
+#else
+ #define __get_PRIMASK() (0)
+ #define __set_PRIMASK(pri) 
+#endif
+
+#ifndef __IO
+#define __IO volatile
 #endif
 
 /// @brief Get dimension of an array
@@ -32,7 +37,8 @@
 __set_PRIMASK(__protect_var_28734); }
 
 typedef void (*voidFunc_f)(void);
-
+typedef void (*objFunc_f)(void *obj);
+typedef void *(*chainObjFunc_f)(void *obj);
 
 #endif
 

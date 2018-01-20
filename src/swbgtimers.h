@@ -8,54 +8,50 @@
  */
 #ifndef _SWBGTIMERS_H_
 #define _SWBGTIMERS_H_
+#include "gencmdef.h"
 #include "swtimers.h"
 #include "swtimer.h"
 
+
 /// Timer callback function pointer prototype
 typedef void (*timerCallback)(intptr_t context);
+typedef swTime32_t swBgTimer_t;
+
+/// User defined value
+uint32_t GetBackgroundTimer(void);
+#define BACKGROUND_TICKS_PER_MS 1000
 
 /// The background timer object 
 typedef struct swtBg_s swtBg_t;
 typedef struct swtBg_s
 {
     swtBg_t *next;      // linked list pointer;
-    swTime32_t timer;
-    timerCallback cb;
+    swBgTimer_t timer;
+    timerCallback cb;   // if null, do task schedule else do callback
     intptr_t taskContext;   // task number or context based on cb 
     uint32_t runCount;  // down counter
 } swtBg_t;
 
-                  
-/** @brief Add a background timer to the slow timer list and attach a task.
- *  
- *  @param [in] swt      a user provided swtBg_t object
- *  @param [in] timeInMs duration time in milliseconds
- *  @param [in] task     the task number
- *  @param [in] runCount Number of duration times to repeat before stopping,
- *                       where 0 indicates continuous operation.
- *  
- *  @details Details
- */
-void SWT_BackgroundTimerCount(
+void SWT_Background(void);
+
+void SWT_BackgroundTimerTask(
             swtBg_t *swt, 
+            taskHandle_t task, 
             uint32_t timeInMs,
-            tcHandle_t task, 
             uint32_t runCount);
-/** @brief Brief
- *  
- *  @param [in] swt      a user provided swtBg_t object
- *  @param [in] timeInMs duration time in milliseconds
- *  @param [in] cb       A callback function
- *  @param [in] context  A callback specific context value
- *  @param [in] runCount Number of duration times to repeat before stopping,
- *                       where 0 indicates continuous operation.
- *  
- *  @details Details
- */
+
 void SWT_BackgroundTimerCallback(
             swtBg_t *swt, 
+            timerCallback cb, 
             uint32_t timeInMs,
-            timerCallback cb, intptr_t context,
-            uint32_t runCount);            
+            uint32_t runCount,
+            intptr_t context);    
+
+void SWT_BackgroundTimersReset(void);
+
+int SWT_IsTimerActive(swtBg_t *swt);
+
+
+            
 /** @}*/
 #endif  // _SWBGTIMERS_H_

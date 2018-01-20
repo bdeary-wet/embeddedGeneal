@@ -30,12 +30,15 @@ typedef struct genQ_s
     uint8_t *base;     // buffer start
 } genQ_t;
 
-// helper macro to build a queue and define a pointer to it
+/** @addtogroup usefulMacros */
+
+// /helper macro to build a queue and define a pointer to it
 #define QBUILDER_ALLOCA(nameP,type, length) \
 genQ_t *nameP = alloca(sizeof(genQ_t)+sizeof(type)*length); \
 GenQ_Init(nameP, nameP+1, sizeof(type), length)
 
-/// use malloc into a automatic variable so need to free before var goes
+
+/// uses malloc into an automatic variable so need to free before var goes
 /// out of scope or make other arrangements 
 #define QBUILDER_MALLOC(nameP,type, length) \
 genQ_t *nameP = malloc(sizeof(genQ_t)+sizeof(type)*length); \
@@ -55,12 +58,12 @@ GenQ_Init(nameP, nameP##structure.buf, sizeof(type), length)
 #define ARRAY_TO_Q(arr, qObj) \
 GenQ_Init(&qObj, arr, sizeof(arr[0]), sizeof(arr)/sizeof(arr[0]))
 
-/// instantiate a automatic queue and attach an existing array.
-#define QBUILDER_ARRAY(name, arr) \
-static genQ_t name; \
-GenQ_Init(&name, arr, sizeof(arr[0]), sizeof(arr)/sizeof(arr[0]))
+/// instantiate an automatic queue and attach an existing array.
+#define QBUILDER_ARRAY(qObj, arr) \
+static genQ_t qObj; \
+GenQ_Init(&qObj, arr, sizeof(arr[0]), sizeof(arr)/sizeof(arr[0]))
 
-
+ /** @} */
 
 /**
  *  @brief Initialize a queue object

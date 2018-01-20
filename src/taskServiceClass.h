@@ -28,7 +28,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "generalQueue.h"
-#include "generalDef.h"
+#include "gencmdef.h"
 
 /// Tasks are void functions
 typedef void (*taskFunc_f)(void);

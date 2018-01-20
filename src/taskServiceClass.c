@@ -1,5 +1,5 @@
 #include "taskServiceClass.h"
-#include "generalDef.h"
+#include "gencmdef.h"
 #include <string.h>
 
 
@@ -80,7 +80,7 @@ taskHandle_t TSC_AddTaskWithQueue(taskMasterRecord_t *tmr, taskFunc_f task, genQ
     te->task = task;
     te->q = q;
     te->scheduled = 0;
-    return (taskHandle_t)te;    
+    return (taskHandle_t)te;
 }
 
 int TSC_SignalTask(taskMasterRecord_t *tmr, taskHandle_t task)
@@ -88,6 +88,7 @@ int TSC_SignalTask(taskMasterRecord_t *tmr, taskHandle_t task)
     taskTableEntry_t *te = (taskTableEntry_t*)task;
     if (te < &tmr->ttable[0] || te > &tmr->ttable[tmr->nextInTable-1]) return TSC_TaskNotDefined;
     USAT_INC(te->scheduled);
+    return TSC_OK;
 }
 
 // add to queue
