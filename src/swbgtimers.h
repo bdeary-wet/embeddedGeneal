@@ -1,6 +1,7 @@
 /**
  *  @file swbgtimers.h
- *  @brief Interface and Class definition for background timers
+ *  @brief Service and Class definition for background timers for use with
+ *         callback functions and tasks
  *  
  */
 /** \addtogroup services
@@ -29,7 +30,12 @@ typedef struct swtBg_s
     swBgTimer_t timer;
     timerCallback cb;   // if null, do task schedule else do callback
     intptr_t taskContext;   // task number or context based on cb 
-    uint32_t runCount;  // down counter
+    uint16_t runCount;  // down counter
+    uint8_t queued:1;
+    uint8_t paused:2;  // 1 = paused, 2 = stopped (reset)
+    uint8_t spare:5;
+    swtBg_t **check; // points at the queue head pointer when setup
+
 } swtBg_t;
 
 void SWT_Background(void);
@@ -38,18 +44,21 @@ void SWT_BackgroundTimerTask(
             swtBg_t *swt, 
             taskHandle_t task, 
             uint32_t timeInMs,
-            uint32_t runCount);
+            uint16_t runCount);
 
 void SWT_BackgroundTimerCallback(
             swtBg_t *swt, 
             timerCallback cb, 
             uint32_t timeInMs,
-            uint32_t runCount,
+            uint16_t runCount,
             intptr_t context);    
 
 void SWT_BackgroundTimersReset(void);
 
 int SWT_IsTimerActive(swtBg_t *swt);
+int SWT_IsTimerPaused(swtBg_t *swt);
+int SWT_IsTimerStopped(swtBg_t *swt);
+int SWT_IsTimerRunning(swtBg_t *swt);
 
 
             
