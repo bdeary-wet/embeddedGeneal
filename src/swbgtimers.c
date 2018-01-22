@@ -1,6 +1,11 @@
 #include "swbgtimers.h"
+#include "taskService.h"
 
+#ifdef TEST
+swtBg_t *timerList;
+#else
 static swtBg_t *timerList;
+#endif    
 
 // Do the entire list once, process any timers that have reached or passed match 
 void SWT_Background(void)
