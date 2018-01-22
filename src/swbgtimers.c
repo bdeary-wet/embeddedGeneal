@@ -10,30 +10,45 @@ static swtBg_t *timerList;
 // Do the entire list once, process any timers that have reached or passed match 
 void SWT_Background(void)
 {
-    swtBg_t *pend = timerList;
-    swtBg_t *next;
     swtBg_t **prev = &timerList;
+    swtBg_t *pend = *prev;
     uint32_t time = GetBackgroundTimer();
     while(pend)
     {
-        next = pend->next;
+        int remove = 0;
         if(SW_TIMER_PASSED(pend->timer, time))
         {
-            if (pend->runCount)
-            if (pend->runCount == 1)
+            if (pend->runCount) // if counting down
             {
-                *prev = next;
-                pend->next = NULL;
+                pend->runCount--;
+                if (pend->runCount == 0) // if counted to zero, remove from list
+                {
+                    remove = 1;
+                }
+                else // reset timer for next time
+                {
+                    SW_TIMER_CYCLE(pend->timer);
+                }
             }
-            else 
+            else // else running continious 
             {
                 SW_TIMER_CYCLE(pend->timer);
             }
-            
+            // do callback or task call
             if(pend->cb) pend->cb(pend->taskContext);
             else         TS_SignalTask(pend->taskContext);
         }
-        pend = next;
+
+        if (remove)
+        {
+            pend = pend->next;  // next in list
+            *prev = &(pend->next); // upate prev's pointer
+        }
+        else
+        {
+            prev = &(pend->next);
+            pend = pend->next;
+        }
     }
 }
 
