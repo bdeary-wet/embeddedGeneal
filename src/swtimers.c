@@ -2,6 +2,9 @@
 #include "swtimer.h"
 #include "gencmdef.h"
 #include "taskService.h"
+#include "main.h"
+#include "tim.h"
+#include <string.h>
 //#include "swtimer_micro.h"
 
 
@@ -171,6 +174,70 @@ void SWT_OnSysTick(void)
     }
 }
 
+//----------------------------------------------------------------------------//
+
+// Fast timer area, high priority interrupt will queue a callback for the 
+// pendsv isr service to process.
+
+static inline uint16_t getFastCounter(void)
+{
+    return htim3.Instance->CNT;
+}
+
+static objFuncQueue_t cbBuf[32];
+static genQ_t pendsvQueue;
+
+objFuncQueue_t *cbPending[4];
+
+// This is the PendSv service routine, justs pulls callbacks out of the 
+// queue and calls them.  The PendSv is assumed to run at near the lowest
+// priority.
+
+uint32_t rependSvCnt;
+uint32_t resetCallbackCnt;
+void SWT_PendService(void)
+{
+    objFuncQueue_t entry;
+    // run for as long as there are things in queue
+    while (!GenQ_Get(&pendsvQueue, &entry))
+    {
+        // clear pending as long as we have data in queue, note the re-pend
+        if (READ_BIT(SCB->ICSR, SCB_ICSR_PENDSVSET_Msk))
+        {
+            SET_BIT(SCB->ICSR, SCB_ICSR_PENDSVCLR_Msk);
+            ++rependSvCnt;
+        }
+        // if it looks valid, call it
+        if(entry.cb) entry.cb(entry.obj);
+        else ++resetCallbackCnt;
+    }
+}
+
+
+
+
+
+static const uint16_t ChanToken[4] =
+{
+    TIM_CHANNEL_1,
+    TIM_CHANNEL_2,
+    TIM_CHANNEL_3,
+    TIM_CHANNEL_4
+};
+
+future_t isrFuture[4];
+
+void SWT_FastInit(void)
+{
+    ARRAY_TO_Q(cbBuf, pendsvQueue);
+    memset(isrFuture, 0, sizeof(isrFuture));
+
+    isrFuture[0].hwTarget = &htim3.Instance->CCR1;
+    isrFuture[1].hwTarget = &htim3.Instance->CCR2;
+    isrFuture[2].hwTarget = &htim3.Instance->CCR3;
+    isrFuture[3].hwTarget = &htim3.Instance->CCR4;    
+}
+
 
 swtFastHandle_t *SWT_FastTimerCallback(
                     timerCallback cb, 
@@ -187,4 +254,78 @@ swtFastHandle_t *SWT_FastTimerCount(
 {
 return NULL;
 }
+
+// On interrupt, copy the callback onto the pending queue and pend the pendsv
+void SWT_ChanIsr(int chan)
+{
+    if(isrFuture[chan].cbObj.cb)
+    {
+        GenQ_Put(&pendsvQueue, &isrFuture[chan].cbObj);
+        isrFuture[chan].cbObj.cb = NULL;
+        SET_BIT(SCB->ICSR, SCB_ICSR_PENDSVSET_Msk);
+    }
+}
+
+
+future_t* FutureCallbackIsr(uint32_t uSec, uintptr_t context, objFunc_f callback)
+{
+    uSec *= T3_COUNTS_PER_USEC;
+    // look for a free channel
+    for(int i=0;i<DIM(isrFuture);i++)
+    {
+        uint32_t pri = __get_PRIMASK();
+        __set_PRIMASK(1);
+        if(NULL == isrFuture[i].cbObj.cb)
+        {
+            isrFuture[i].cbObj.cb = callback;
+            *isrFuture[i].hwTarget = getFastCounter() + uSec;
+            isrFuture[i].cbObj.obj = (void*)context;
+            __set_PRIMASK(pri);
+            HAL_TIM_OC_Start_IT(&htim3, ChanToken[i]);
+            isrFuture[i].target = *isrFuture[i].hwTarget; // book keeping
+            return &isrFuture[i];
+        }
+        __set_PRIMASK(pri);
+    }
+    return NULL;    
+}
+
+
+// Delay exiting callback set time from now
+bool FutureReset(future_t *fut, uint32_t delay)
+{
+    uint32_t pri = __get_PRIMASK();
+    delay *= T3_COUNTS_PER_USEC;
+    __set_PRIMASK(1);
+    if(fut->cbObj.cb)
+    {
+        uint32_t temp = getFastCounter() + delay;
+        *(fut->hwTarget) = temp;
+        __set_PRIMASK(pri);
+        fut->target = temp;  // redundent in background , book keeping in isr
+        return true;
+    }
+    __set_PRIMASK(pri);
+    return false;
+    
+}
+// Kill the future callback
+bool FutureKill(future_t *fut)
+{
+    uint32_t pri = __get_PRIMASK();
+    __set_PRIMASK(1);
+    if(fut->cbObj.cb) 
+    {
+        fut->cbObj.cb = NULL;
+        __set_PRIMASK(pri);
+        return true;
+    }
+    __set_PRIMASK(pri);
+    return false;
+}
+
+
+
+
+
 

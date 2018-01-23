@@ -336,7 +336,7 @@
               <MiscControls>--C99</MiscControls>
               <Define>USE_FULL_LL_DRIVER,USE_HAL_DRIVER,STM32F334x8</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;../Drivers/STM32F3xx_HAL_Driver/Inc;../Drivers/STM32F3xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F3xx/Include;../Drivers/CMSIS/Include;../../generalEmbed/src</IncludePath>
+              <IncludePath>../Inc;../Drivers/STM32F3xx_HAL_Driver/Inc;../Drivers/STM32F3xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F3xx/Include;../Drivers/CMSIS/Include;../../src</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -413,32 +413,32 @@
             <File>
               <FileName>generalQueue.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\generalEmbed\src\generalQueue.c</FilePath>
+              <FilePath>..\..\src\generalQueue.c</FilePath>
             </File>
             <File>
               <FileName>swbgtimers.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\generalEmbed\src\swbgtimers.c</FilePath>
+              <FilePath>..\..\src\swbgtimers.c</FilePath>
             </File>
             <File>
               <FileName>swtimer.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\generalEmbed\src\swtimer.c</FilePath>
+              <FilePath>..\..\src\swtimer.c</FilePath>
             </File>
             <File>
               <FileName>swtimers.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\generalEmbed\src\swtimers.c</FilePath>
+              <FilePath>..\..\src\swtimers.c</FilePath>
             </File>
             <File>
               <FileName>taskService.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\generalEmbed\src\taskService.c</FilePath>
+              <FilePath>..\..\src\taskService.c</FilePath>
             </File>
             <File>
               <FileName>taskServiceClass.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\generalEmbed\src\taskServiceClass.c</FilePath>
+              <FilePath>..\..\src\taskServiceClass.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -491,11 +491,6 @@
               <FilePath>../Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_tim_ex.c</FilePath>
             </File>
             <File>
-              <FileName>stm32f3xx_hal_crc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_crc.c</FilePath>
-            </File>
-            <File>
               <FileName>stm32f3xx_hal_cortex.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_cortex.c</FilePath>
@@ -506,16 +501,6 @@
               <FilePath>../Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_ll_exti.c</FilePath>
             </File>
             <File>
-              <FileName>stm32f3xx_hal_crc_ex.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_crc_ex.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32f3xx_ll_dma.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_ll_dma.c</FilePath>
-            </File>
-            <File>
               <FileName>stm32f3xx_hal_pwr.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_pwr.c</FilePath>
@@ -524,11 +509,6 @@
               <FileName>stm32f3xx_ll_gpio.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_ll_gpio.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32f3xx_ll_tim.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_ll_tim.c</FilePath>
             </File>
             <File>
               <FileName>stm32f3xx_hal_flash_ex.c</FileName>
@@ -549,6 +529,11 @@
               <FileName>stm32f3xx_hal_rcc_ex.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_rcc_ex.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f3xx_ll_crc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_ll_crc.c</FilePath>
             </File>
           </Files>
         </Group>

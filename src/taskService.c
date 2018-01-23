@@ -63,4 +63,4 @@ genQ_t *TS_GetQueueObject(uint8_t taskNo)
 size_t TS_InitGetSize(int expectedTasks)
 {
     return TSC_InitGetSize(expectedTasks);
-}    
+}

@@ -11,7 +11,9 @@
  */
 #ifndef _SWTIMERS_H
 #define _SWTIMERS_H
+#include "gencmdef.h"
 #include "taskService.h"
+
 
 #define TICKS_PER_USEC 4;
 
@@ -20,7 +22,18 @@ typedef struct swtH_s swtHandle_t;
 
 typedef struct swtFH_s swtFastHandle_t;
 
+typedef struct
+{
+    objFuncQueue_t cbObj;
+    uint32_t target;            
+    uint32_t volatile *hwTarget;
+} future_t;
+
 void SWT_OnSysTick(void);
+
+void SWT_PendService(void);
+void SWT_FastInit(void);
+void SWT_ChanIsr(int chan);
 
 
  

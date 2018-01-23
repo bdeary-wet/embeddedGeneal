@@ -43,8 +43,11 @@
 #include "gpio.h"
 
 /* USER CODE BEGIN Includes */
+#include <alloca.h>
 #include "taskService.h"
 #include "swbgtimers.h"
+#include "gencmdef.h"
+#include "generalQueue.h"
 
 /* USER CODE END Includes */
 
@@ -65,8 +68,106 @@ static void MX_NVIC_Init(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
+#define NUM_OF_TASKS 10
 extern __IO uint32_t uwTick;
 __IO uint32_t *someCounter = &uwTick;
+
+uint32_t tasksAllowed;
+taskHandle_t bgTimerTask;
+taskHandle_t task1Task;
+taskHandle_t task2Task;
+taskHandle_t task3Task;
+taskHandle_t task4Task;
+
+void HAL_SYSTICK_Callback(void)
+{
+    TS_SignalTask(bgTimerTask);
+}
+
+uint32_t Clock3;
+uint32_t Clock6;
+uint32_t Clock7;
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim == &htim3) ++Clock3;
+    if (htim == &htim6) ++Clock6;
+    if (htim == &htim7) ++Clock7;
+}
+
+static void subTask(int cnt)
+{
+    volatile int i;
+    for (i = 0; i < cnt; i++)
+    {
+        if ( 0 == i%1000 )
+        {
+            TS_Yield();
+        }
+    }
+}
+
+
+void task1(void)
+{
+    subTask(3000);
+    TS_SignalTask(task4Task);
+    TS_SignalTask(task2Task);
+}
+
+void task2(void)
+{
+    subTask(30000);
+    TS_SignalTask(task3Task);    
+}
+
+void task3(void)
+{
+    subTask(300000);
+    TS_SignalTask(task1Task);
+}
+
+void task4(void)
+{
+    subTask(3000000);
+    TS_SignalTask(task2Task);
+}
+
+
+// Interface to the fast software timer code using the 4 output compare
+// registers of TIM3
+void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim != &htim3) return;
+    switch(htim->Channel)
+    {
+        case HAL_TIM_ACTIVE_CHANNEL_1:
+        SWT_ChanIsr(0);
+        break;
+        case HAL_TIM_ACTIVE_CHANNEL_2:
+        SWT_ChanIsr(1);        
+        break;
+        case HAL_TIM_ACTIVE_CHANNEL_3:
+        SWT_ChanIsr(2);        
+        break;
+        case HAL_TIM_ACTIVE_CHANNEL_4:    
+        SWT_ChanIsr(3);          
+        break;
+        case HAL_TIM_ACTIVE_CHANNEL_CLEARED:
+        break;
+    }
+}
+
+future_t* FutureCallbackIsr(uint32_t uSec, uintptr_t context, objFunc_f callback);
+
+uint32_t futureCalled;
+
+void futureTest(void *context)
+{
+    FutureCallbackIsr((uint32_t)context, (uintptr_t)context, futureTest);
+    futureCalled++;
+}
+
 
 /* USER CODE END 0 */
 
@@ -98,23 +199,54 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM7_Init();
   MX_CRC_Init();
+  MX_TIM3_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
 
   /* USER CODE BEGIN 2 */
+  
+  HAL_ResumeTick();
+  
+  HAL_TIM_Base_Start_IT(&htim3);
+  HAL_TIM_Base_Start_IT(&htim6);
+  HAL_TIM_Base_Start_IT(&htim7);
+  
+  SWT_FastInit();
+  
+  // allocate space for the tasks  
+  uint32_t *space = alloca(TS_InitGetSize(NUM_OF_TASKS));
+  tasksAllowed = TS_Init(space,TS_InitGetSize(NUM_OF_TASKS));
+  if(tasksAllowed != NUM_OF_TASKS)
+    { while (1) {} }  // Oh Crap
+  // make the background timer a task itself
+  bgTimerTask =  TS_AddTask(SWT_Background);
+  task1Task =  TS_AddTask(task1);
+  task2Task =  TS_AddTask(task2);
+  task3Task =  TS_AddTask(task3);
+  task4Task =  TS_AddTask(task4);    
 
+  TS_SignalTask(task3Task);
+    
+  // launch future test
+  futureTest((void*)100);
+  futureTest((void*)15000);  
+  futureTest((void*)1023);
+    
+    
+    
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    // The task runner  
+    TS_Background();
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-    SWT_Background();
-    TS_Background();
+
 
   }
   /* USER CODE END 3 */
@@ -178,11 +310,11 @@ void SystemClock_Config(void)
 static void MX_NVIC_Init(void)
 {
   /* TIM6_DAC1_IRQn interrupt configuration */
-  NVIC_SetPriority(TIM6_DAC1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 1));
-  NVIC_EnableIRQ(TIM6_DAC1_IRQn);
+  HAL_NVIC_SetPriority(TIM6_DAC1_IRQn, 1, 1);
+  HAL_NVIC_EnableIRQ(TIM6_DAC1_IRQn);
   /* TIM7_DAC2_IRQn interrupt configuration */
-  NVIC_SetPriority(TIM7_DAC2_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 2));
-  NVIC_EnableIRQ(TIM7_DAC2_IRQn);
+  HAL_NVIC_SetPriority(TIM7_DAC2_IRQn, 1, 2);
+  HAL_NVIC_EnableIRQ(TIM7_DAC2_IRQn);
 }
 
 /* USER CODE BEGIN 4 */

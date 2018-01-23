@@ -7,13 +7,23 @@ swtBg_t *timerList;
 static swtBg_t *timerList;
 #endif    
 
+uint32_t lastBgTime;
+uint32_t maxBgUpdate;
+
 // Do the entire list once, process any timers that have reached or passed match 
 void SWT_Background(void)
 {
-    if(!timerList) return;
+    // Do some runtime stats by keeping tract of the worst delay
+    uint32_t time = GetBackgroundTimer();
+    uint32_t delta = time - lastBgTime;
+    if(!delta) return;  // unexpected tick
+    // keep track of worst delay
+    lastBgTime = time;
+    if(delta > maxBgUpdate) maxBgUpdate = delta;    
+
     swtBg_t **prev = &timerList;    // points where the previous pointer is stored
     swtBg_t *pend = *prev;      // get the first item in the list
-    uint32_t time = GetBackgroundTimer();
+
     while(pend)
     {
         int removed = 0;
@@ -52,6 +62,7 @@ void SWT_Background(void)
         }
         pend = next;
     }
+
 }
 
 void SWT_BackgroundTimerTask(

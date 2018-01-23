@@ -42,6 +42,11 @@ __set_PRIMASK(__protect_var_28734); }
 typedef void (*voidFunc_f)(void);
 typedef void (*objFunc_f)(void *obj);
 typedef void *(*chainObjFunc_f)(void *obj);
+typedef struct
+{
+    objFunc_f cb;
+    void *obj;
+} objFuncQueue_t;
 
 #endif
 

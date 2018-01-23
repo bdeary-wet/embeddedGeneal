@@ -36,10 +36,23 @@
 #include "stm32f3xx_it.h"
 
 /* USER CODE BEGIN 0 */
+#include "generalQueue.h"
+#include "gencmdef.h"
+
+typedef struct
+{
+    objFunc_f cb;
+    void *context;
+} callbackQueue_t;
+
+extern genQ_t pendsvQueue;
 
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern TIM_HandleTypeDef htim3;
+extern TIM_HandleTypeDef htim6;
+extern TIM_HandleTypeDef htim7;
 
 /******************************************************************************/
 /*            Cortex-M4 Processor Interruption and Exception Handlers         */ 
@@ -51,6 +64,7 @@
 void PendSV_Handler(void)
 {
   /* USER CODE BEGIN PendSV_IRQn 0 */
+    SWT_PendService();
 
   /* USER CODE END PendSV_IRQn 0 */
   /* USER CODE BEGIN PendSV_IRQn 1 */
@@ -81,6 +95,20 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
+* @brief This function handles TIM3 global interrupt.
+*/
+void TIM3_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM3_IRQn 0 */
+
+  /* USER CODE END TIM3_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim3);
+  /* USER CODE BEGIN TIM3_IRQn 1 */
+
+  /* USER CODE END TIM3_IRQn 1 */
+}
+
+/**
 * @brief This function handles TIM6 global and DAC1 underrun error interrupts.
 */
 void TIM6_DAC1_IRQHandler(void)
@@ -88,7 +116,7 @@ void TIM6_DAC1_IRQHandler(void)
   /* USER CODE BEGIN TIM6_DAC1_IRQn 0 */
 
   /* USER CODE END TIM6_DAC1_IRQn 0 */
-  
+  HAL_TIM_IRQHandler(&htim6);
   /* USER CODE BEGIN TIM6_DAC1_IRQn 1 */
 
   /* USER CODE END TIM6_DAC1_IRQn 1 */
@@ -102,7 +130,7 @@ void TIM7_DAC2_IRQHandler(void)
   /* USER CODE BEGIN TIM7_DAC2_IRQn 0 */
 
   /* USER CODE END TIM7_DAC2_IRQn 0 */
-  
+  HAL_TIM_IRQHandler(&htim7);
   /* USER CODE BEGIN TIM7_DAC2_IRQn 1 */
 
   /* USER CODE END TIM7_DAC2_IRQn 1 */

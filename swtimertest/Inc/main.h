@@ -59,6 +59,10 @@
 #define T6_PERIOD_USEC 10
 #define T6_COUNTS_PER_USEC 64
 #define T7_COUNTS_PER_SEC 62500
+#define T3_PERIOD_NS 250
+#define T3_COUNTS_PER_USEC 4
+#define T3_MAX_USEC 16384
+#define T3_MAX_MSEC 16
 
 #define B1_Pin LL_GPIO_PIN_13
 #define B1_GPIO_Port GPIOC
