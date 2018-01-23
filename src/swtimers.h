@@ -18,57 +18,42 @@
 typedef void (*timerCallback)(intptr_t context);
 typedef struct swtH_s swtHandle_t;
 
+typedef struct swtFH_s swtFastHandle_t;
 
-                    
-swtHandle_t *SWT_FastTimerCount(
+void SWT_OnSysTick(void);
+
+
+ 
+swtFastHandle_t *SWT_FastTimerCount(
                     uint32_t *counter,
                     uint32_t timeInNs, 
-                    uint32_t runCount);                    
-     
+                    uint32_t runCount,
+                    taskHandle_t task);
 
-/** @brief Associate a fast (hardware) timer with a callback
- *  
- *  @param [in] timeInNs The timer duration in nanoseconds
- *  @param [in] cb       A callback function
- *  @param [in] context  A callback specific context value
- *  @param [in] runCount Number of duration times to repeat before stopping,
- *                       where 0 indicates continuous operation.
- *  @return a software timer handle or NULL if no timers are available.
- *  
- *  @details Details
- */     
-swtHandle_t *SWT_FastTimerCallback(
+swtFastHandle_t *SWT_FastTimerCallback(
                     timerCallback cb, 
                     uint32_t timeInNs, 
                     uint32_t runCount,
-                    intptr_t context);                           
+                    intptr_t context);
 
-/** @brief Associate a time event from the system tick with a task counter
- *  
- *  @param [in] timeInMicroSeconds The timer duration in uSec.
- *  @param [in] taskNo   The previously defined taskNo
- *  @param [in] runCount Number of duration times to repeat before stopping,
- *                       where 0 indicates continuous operation.
- *  @return a software timer handle or NULL if no timers are available.
- *  
- *  @details Details
- */
+
 swtHandle_t *SWT_SysTimerSignalTask(
                     taskHandle_t task, 
                     uint32_t timeInMicroSeconds,
                     uint32_t runCount); 
  
-swtHandle_t *SWT_SysTimerCount(
-                    uint32_t *counter,          ///< [in/out] the counter to increment
-                    uint32_t timeInMicroSeconds,///< [in] the interval in uSec.
-                    uint32_t runCount);         ///< 0=continuous, else count down
-
                   
 swtHandle_t *SWT_SysTimerCallback(
             timerCallback cb, 
             uint32_t timeInMicroSeconds, 
             uint32_t runCount,
             intptr_t context);
+
+swtHandle_t *SWT_SysTimerCount(
+                    uint32_t *counter,
+                    uint32_t timeInMicroSeconds,
+                    uint32_t runCount,
+                    taskHandle_t task);
 
             
 /** @brief Get the storage requirements for one timer
@@ -78,7 +63,8 @@ swtHandle_t *SWT_SysTimerCallback(
  *  @details Used during setup to allocate space for system timer pools.
  */            
 size_t SWT_sizeofTimer(void); 
-size_t SWT_FastTimersAvailable(void);           
+
+size_t SWT_FastTimersAvailable(void);
             
 /** @brief Assign memory for the system timer pool.
  *  
@@ -88,8 +74,27 @@ size_t SWT_FastTimersAvailable(void);
  *  @details Details
  */
 int SWT_InitSysTimers(void *space, size_t spaceSize);
+
+
+/** @brief Init the fast timer service and give the system an idea of the 
+ *         maximum number of fast timers needed(only a suggestion). 
+ *
+ *  @param [in] needed The number of timeres to configure if possible
+ *  @return The number of timers available or negative error code.
+ *  
+ *  @details The fast timer system is hardware dependent and uses a lower level
+ *  hardware driver. The number of timers available and how they are implemented
+ *  is device specific. 
+ */
 int SWT_InitFastTimers(int needed);
 
+/** @brief Gets the hardware specific fast timer resolution in nanoseconds.
+ *  
+ *  @return resolution in nanoseconds 
+ *  
+ *  @details Details
+ */
+uint32_t SWT_FastTimerResolutionNs(void);
 
 /// Convenience Macros for setting up the system using stack called from main
 #define SWT_INIT_SYSTIMERS(timers) \

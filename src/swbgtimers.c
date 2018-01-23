@@ -10,6 +10,7 @@ static swtBg_t *timerList;
 // Do the entire list once, process any timers that have reached or passed match 
 void SWT_Background(void)
 {
+    if(!timerList) return;
     swtBg_t **prev = &timerList;    // points where the previous pointer is stored
     swtBg_t *pend = *prev;      // get the first item in the list
     uint32_t time = GetBackgroundTimer();
@@ -120,10 +121,11 @@ int SWT_PauseTimer(swtBg_t *swt)
     swt->paused = 1; 
     // save how far we have advanced
     swt->timer.start =  GetBackgroundTimer() - swt->timer.start;
+    return 0;
 }
 
 // stop the timer, will start from 0 if restarted
-int SWT_StopTimer(swtBg_t *swt) {swt->paused = 2;}
+int SWT_StopTimer(swtBg_t *swt) {swt->paused = 2;     return 0;}
 
 // restart from stop or pause
 int SWT_RestartTimer(swtBg_t *swt)
@@ -139,6 +141,7 @@ int SWT_RestartTimer(swtBg_t *swt)
         swt->timer.start = GetBackgroundTimer();
     }
     swt->paused = 0;
+    return 0;
 }
 
 

@@ -144,11 +144,13 @@ genQ_t *TSC_GetQueueObject(taskMasterRecord_t *tmr, taskHandle_t task)
 // run until no tasks need scheduling, restarting after every success
 void TSC_DoTasks(taskMasterRecord_t *tmr)
 {
+    if(!tmr) return;
     int again = 1;
     while (again)
     {
         again = 0;
         taskTableEntry_t *te = tmr->ttable;
+        if(!te) return;
         for (tmr->runState.runningTask = 0;
              tmr->runState.runningTask < tmr->runState.lowestYielding;
              tmr->runState.runningTask++, te++)
