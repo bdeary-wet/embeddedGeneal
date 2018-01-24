@@ -2,11 +2,7 @@
 #include "swtimer.h"
 #include "gencmdef.h"
 #include "taskService.h"
-#include "main.h"
-#include "tim.h"
 #include <string.h>
-//#include "swtimer_micro.h"
-
 
 typedef struct swtH_s 
 {
@@ -19,16 +15,6 @@ typedef struct swtH_s
     uint16_t spare;
 } swtHandle_t;
 
-typedef struct swtFH_s 
-{
-    timerCallback cb;       ///< optional callback pointer
-    uint32_t *counter;      ///< optional counter
-    swTime32_t timer;       ///< timer structure
-    intptr_t contextTask;   ///< holds context or task handle
-    uint32_t runCount;      ///< 0 for continuous, else number of runs
-    uint16_t active;        ///< active flag
-    uint16_t spare;
-} swtFastHandle_t;
 
 typedef enum
 {
@@ -179,22 +165,35 @@ void SWT_OnSysTick(void)
 // Fast timer area, high priority interrupt will queue a callback for the 
 // pendsv isr service to process.
 
-static inline uint16_t getFastCounter(void)
-{
-    return htim3.Instance->CNT;
-}
 
-static objFuncQueue_t cbBuf[32];
-static genQ_t pendsvQueue;
+// callback buffer timerIsr -> pendsv
+static objFuncQueue_t cbBuf[FAST_PEND_DEPTH*TIMER_CHANNELS];  
+static genQ_t pendsvQueue;        // queue for callback buffer
 
-objFuncQueue_t *cbPending[4];
+objFuncQueue_t *cbPending[TIMER_CHANNELS]; // pointers to pending callbacks
 
 // This is the PendSv service routine, justs pulls callbacks out of the 
 // queue and calls them.  The PendSv is assumed to run at near the lowest
 // priority.
 
+static inline void pend_pendsv(void)
+{
+    SET_BIT(SCB->ICSR, SCB_ICSR_PENDSVSET_Msk);
+}
+
+static inline int test_pendsv(void)
+{
+    return READ_BIT(SCB->ICSR, SCB_ICSR_PENDSVSET_Msk);
+}
+
+static inline void clear_pendsv(void)
+{
+    SET_BIT(SCB->ICSR, SCB_ICSR_PENDSVCLR_Msk);
+}
+
 uint32_t rependSvCnt;
 uint32_t resetCallbackCnt;
+
 void SWT_PendService(void)
 {
     objFuncQueue_t entry;
@@ -202,9 +201,9 @@ void SWT_PendService(void)
     while (!GenQ_Get(&pendsvQueue, &entry))
     {
         // clear pending as long as we have data in queue, note the re-pend
-        if (READ_BIT(SCB->ICSR, SCB_ICSR_PENDSVSET_Msk))
+        if (test_pendsv())
         {
-            SET_BIT(SCB->ICSR, SCB_ICSR_PENDSVCLR_Msk);
+            clear_pendsv();
             ++rependSvCnt;
         }
         // if it looks valid, call it
@@ -213,29 +212,13 @@ void SWT_PendService(void)
     }
 }
 
-
-
-
-
-static const uint16_t ChanToken[4] =
-{
-    TIM_CHANNEL_1,
-    TIM_CHANNEL_2,
-    TIM_CHANNEL_3,
-    TIM_CHANNEL_4
-};
-
-future_t isrFuture[4];
+future_t isrFuture[TIMER_CHANNELS];
 
 void SWT_FastInit(void)
 {
     ARRAY_TO_Q(cbBuf, pendsvQueue);
     memset(isrFuture, 0, sizeof(isrFuture));
-
-    isrFuture[0].hwTarget = &htim3.Instance->CCR1;
-    isrFuture[1].hwTarget = &htim3.Instance->CCR2;
-    isrFuture[2].hwTarget = &htim3.Instance->CCR3;
-    isrFuture[3].hwTarget = &htim3.Instance->CCR4;    
+    SWT_MicroSetup(isrFuture, TIMER_CHANNELS);
 }
 
 
@@ -260,9 +243,18 @@ void SWT_ChanIsr(int chan)
 {
     if(isrFuture[chan].cbObj.cb)
     {
+        // send callback to processor isr
         GenQ_Put(&pendsvQueue, &isrFuture[chan].cbObj);
-        isrFuture[chan].cbObj.cb = NULL;
-        SET_BIT(SCB->ICSR, SCB_ICSR_PENDSVSET_Msk);
+        // free the resource or recycle
+        if(isrFuture[chan].runCount == 1)
+            isrFuture[chan].cbObj.cb = NULL;
+        else
+        {
+            SWT_recycle(&isrFuture[chan]);
+            if (isrFuture[chan].runCount) isrFuture[chan].runCount--;
+        }
+        // schedule the processor isr
+        pend_pendsv();
     }
 }
 
@@ -277,12 +269,12 @@ future_t* FutureCallbackIsr(uint32_t uSec, uintptr_t context, objFunc_f callback
         __set_PRIMASK(1);
         if(NULL == isrFuture[i].cbObj.cb)
         {
+            isrFuture[i].duration = uSec;
+            isrFuture[i].runCount = 1;
             isrFuture[i].cbObj.cb = callback;
-            *isrFuture[i].hwTarget = getFastCounter() + uSec;
             isrFuture[i].cbObj.obj = (void*)context;
+            SWT_start(&isrFuture[i]);
             __set_PRIMASK(pri);
-            HAL_TIM_OC_Start_IT(&htim3, ChanToken[i]);
-            isrFuture[i].target = *isrFuture[i].hwTarget; // book keeping
             return &isrFuture[i];
         }
         __set_PRIMASK(pri);

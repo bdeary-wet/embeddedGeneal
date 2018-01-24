@@ -13,28 +13,23 @@
 #define _SWTIMERS_H
 #include "gencmdef.h"
 #include "taskService.h"
+#include "swtimersupport.h"
 
+#define FAST_PEND_DEPTH 8  // number of pending callbacks per channel -1
 
-#define TICKS_PER_USEC 4;
 
 typedef void (*timerCallback)(intptr_t context);
 typedef struct swtH_s swtHandle_t;
 
 typedef struct swtFH_s swtFastHandle_t;
 
-typedef struct
-{
-    objFuncQueue_t cbObj;
-    uint32_t target;            
-    uint32_t volatile *hwTarget;
-} future_t;
+
 
 void SWT_OnSysTick(void);
 
-void SWT_PendService(void);
-void SWT_FastInit(void);
-void SWT_ChanIsr(int chan);
-
+void SWT_PendService(void);  // The pend isr function
+void SWT_FastInit(void);     // The Init function for main
+void SWT_ChanIsr(int chan);  // The function for the timer ISR
 
  
 swtFastHandle_t *SWT_FastTimerCount(
@@ -75,9 +70,10 @@ swtHandle_t *SWT_SysTimerCount(
  *  
  *  @details Used during setup to allocate space for system timer pools.
  */            
-size_t SWT_sizeofTimer(void); 
+size_t SWT_sizeofSysTimer(void); 
 
 size_t SWT_FastTimersAvailable(void);
+
             
 /** @brief Assign memory for the system timer pool.
  *  
@@ -89,17 +85,6 @@ size_t SWT_FastTimersAvailable(void);
 int SWT_InitSysTimers(void *space, size_t spaceSize);
 
 
-/** @brief Init the fast timer service and give the system an idea of the 
- *         maximum number of fast timers needed(only a suggestion). 
- *
- *  @param [in] needed The number of timeres to configure if possible
- *  @return The number of timers available or negative error code.
- *  
- *  @details The fast timer system is hardware dependent and uses a lower level
- *  hardware driver. The number of timers available and how they are implemented
- *  is device specific. 
- */
-int SWT_InitFastTimers(int needed);
 
 /** @brief Gets the hardware specific fast timer resolution in nanoseconds.
  *  

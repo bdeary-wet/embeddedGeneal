@@ -36,16 +36,8 @@
 #include "stm32f3xx_it.h"
 
 /* USER CODE BEGIN 0 */
-#include "generalQueue.h"
 #include "gencmdef.h"
-
-typedef struct
-{
-    objFunc_f cb;
-    void *context;
-} callbackQueue_t;
-
-extern genQ_t pendsvQueue;
+#include "swtimers.h"
 
 /* USER CODE END 0 */
 

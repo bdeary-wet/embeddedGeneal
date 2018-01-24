@@ -1,40 +1,43 @@
 #include "swtimer_st.h"
+#include "swtimersupport.h"
+#include "main.h"
+#include "tim.h"
 
 
-
-
-
-// Setup the timer2 isr system.
-void InitFuture(void)
+static const uint16_t ChanToken[4] =
 {
-    memset(isrFuture, 0, sizeof(isrFuture));
-    memset(bkgFuture, 0, sizeof(bkgFuture));
-    
-    isrFuture[0].hwTarget = &htim2.Instance->CCR1;
-    isrFuture[1].hwTarget = &htim2.Instance->CCR2;
-    isrFuture[2].hwTarget = &htim2.Instance->CCR3;
-    isrFuture[3].hwTarget = &htim2.Instance->CCR4;
+    TIM_CHANNEL_1,
+    TIM_CHANNEL_2,
+    TIM_CHANNEL_3,
+    TIM_CHANNEL_4
+};
+
+
+void SWT_MicroSetup(future_t *isrFuture, int chans)
+{
+    isrFuture[0].hwTarget = &htim3.Instance->CCR1;
+    isrFuture[0].token = ChanToken[0];
+    isrFuture[1].hwTarget = &htim3.Instance->CCR2;
+    isrFuture[1].token = ChanToken[1];    
+    isrFuture[2].hwTarget = &htim3.Instance->CCR3;
+    isrFuture[2].token = ChanToken[2];    
+    isrFuture[3].hwTarget = &htim3.Instance->CCR4;    
+    isrFuture[3].token = ChanToken[3];    
 }
 
-
-// The channel iSR handler
-void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
+// start for the first time based on counter
+void SWT_start(future_t *fut)
 {
-    switch (htim->Channel)
-    {
-    case HAL_TIM_ACTIVE_CHANNEL_1:
-        FutureIsr(0);
-        break;
-    case HAL_TIM_ACTIVE_CHANNEL_2:
-        FutureIsr(1);
-        break;
-    case HAL_TIM_ACTIVE_CHANNEL_3:
-        FutureIsr(2);
-        break;
-    case HAL_TIM_ACTIVE_CHANNEL_4:
-        FutureIsr(3);
-        break;
-    default:
-        break;
-    }
+    *(fut->hwTarget) = getFastCounter() + fut->duration;
+    HAL_TIM_OC_Start_IT(&htim3, fut->token);
+    fut->target = *(fut->hwTarget);
 }
+
+// start again based on last time
+void SWT_recycle(future_t *fut)
+{
+    *(fut->hwTarget) = fut->target + fut->duration;
+    HAL_TIM_OC_Start_IT(&htim3, fut->token);
+    fut->target = *(fut->hwTarget);    
+}
+
