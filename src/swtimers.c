@@ -222,46 +222,14 @@ void SWT_FastInit(void)
 }
 
 
-swtFastHandle_t *SWT_FastTimerCallback(
+swtFastHandle_t SWT_FastTimerCallback(
                     timerCallback cb, 
                     uint32_t timeInNs, 
                     uint32_t runCount,
                     intptr_t context)
-                    {return NULL;}                    
-                    
-swtFastHandle_t *SWT_FastTimerCount(
-                    uint32_t *counter,
-                    uint32_t timeInNs, 
-                    uint32_t runCount,
-                    taskHandle_t task)
+  
+//future_t* FutureCallbackIsr(uint32_t uSec, uintptr_t context, objFunc_f callback)
 {
-return NULL;
-}
-
-// On interrupt, copy the callback onto the pending queue and pend the pendsv
-void SWT_ChanIsr(int chan)
-{
-    if(isrFuture[chan].cbObj.cb)
-    {
-        // send callback to processor isr
-        GenQ_Put(&pendsvQueue, &isrFuture[chan].cbObj);
-        // free the resource or recycle
-        if(isrFuture[chan].runCount == 1)
-            isrFuture[chan].cbObj.cb = NULL;
-        else
-        {
-            SWT_recycle(&isrFuture[chan]);
-            if (isrFuture[chan].runCount) isrFuture[chan].runCount--;
-        }
-        // schedule the processor isr
-        pend_pendsv();
-    }
-}
-
-
-future_t* FutureCallbackIsr(uint32_t uSec, uintptr_t context, objFunc_f callback)
-{
-    uSec *= T3_COUNTS_PER_USEC;
     // look for a free channel
     for(int i=0;i<DIM(isrFuture);i++)
     {
@@ -269,18 +237,60 @@ future_t* FutureCallbackIsr(uint32_t uSec, uintptr_t context, objFunc_f callback
         __set_PRIMASK(1);
         if(NULL == isrFuture[i].cbObj.cb)
         {
-            isrFuture[i].duration = uSec;
-            isrFuture[i].runCount = 1;
-            isrFuture[i].cbObj.cb = callback;
-            isrFuture[i].cbObj.obj = (void*)context;
-            SWT_start(&isrFuture[i]);
+            // claim the handle
+            isrFuture[i].cbObj.cb = cb;
             __set_PRIMASK(pri);
-            return &isrFuture[i];
+            // do general design stuff
+            isrFuture[i].duration = NS_TO_FAST_CLOCKS(timeInNs);
+            isrFuture[i].runCount = runCount;
+            isrFuture[i].cbObj.obj = context;
+            // do hardware specific stuff
+            __set_PRIMASK(1);
+            SWT_start(&isrFuture[i]);   
+            __set_PRIMASK(pri);
+            return (swtFastHandle_t)&isrFuture[i]; // return the handle
         }
         __set_PRIMASK(pri);
     }
-    return NULL;    
+    return (swtFastHandle_t)NULL;    
 }
+
+
+                    
+                    
+swtFastHandle_t SWT_FastTimerCount(
+                    uint32_t *counter,
+                    uint32_t timeInNs, 
+                    uint32_t runCount,
+                    taskHandle_t task)
+{
+return (swtFastHandle_t)NULL;
+}
+
+// On interrupt, copy the callback onto the pending queue and pend the pendsv
+void SWT_ChanIsr(swtFastHandle_t fa)
+{
+    future_t *fup = (future_t*)fa;
+    if(fup->runCount != 1)
+    {
+        SWT_recycle(fup);
+        if (fup->runCount) fup->runCount--;
+        // send callback to processor isr
+        GenQ_Put(&pendsvQueue, &(fup->cbObj));
+    }
+    else
+    {
+        // send callback to processor isr
+        GenQ_Put(&pendsvQueue, &(fup->cbObj));
+        // free the resource
+        fup->cbObj.cb = NULL;
+    }
+    // schedule the processor isr
+    pend_pendsv();
+}
+
+
+
 
 
 // Delay exiting callback set time from now

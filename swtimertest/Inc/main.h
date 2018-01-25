@@ -56,13 +56,13 @@
 
 /* Private define ------------------------------------------------------------*/
 #define CLOCKS_PER_USEC 64
-#define T6_PERIOD_USEC 10
-#define T6_COUNTS_PER_USEC 64
-#define T7_COUNTS_PER_SEC 62500
-#define T3_PERIOD_NS 250
+#define T7_COUNTS_PER_MSEC 1000
+#define T3_NS_PER_COUNT 250
 #define T3_COUNTS_PER_USEC 4
 #define T3_MAX_USEC 16384
 #define T3_MAX_MSEC 16
+#define T7_COUNTS_PER_USEC 1
+#define T7_NS_PER_COUNT 1000
 
 #define B1_Pin LL_GPIO_PIN_13
 #define B1_GPIO_Port GPIOC

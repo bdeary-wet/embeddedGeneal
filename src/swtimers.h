@@ -20,8 +20,8 @@
 
 typedef void (*timerCallback)(intptr_t context);
 typedef struct swtH_s swtHandle_t;
-
-typedef struct swtFH_s swtFastHandle_t;
+    
+typedef  intptr_t swtFastHandle_t;
 
 
 
@@ -29,16 +29,16 @@ void SWT_OnSysTick(void);
 
 void SWT_PendService(void);  // The pend isr function
 void SWT_FastInit(void);     // The Init function for main
-void SWT_ChanIsr(int chan);  // The function for the timer ISR
+void SWT_ChanIsr(swtFastHandle_t fh); 
 
  
-swtFastHandle_t *SWT_FastTimerCount(
+swtFastHandle_t SWT_FastTimerCount(
                     uint32_t *counter,
                     uint32_t timeInNs, 
                     uint32_t runCount,
                     taskHandle_t task);
 
-swtFastHandle_t *SWT_FastTimerCallback(
+swtFastHandle_t SWT_FastTimerCallback(
                     timerCallback cb, 
                     uint32_t timeInNs, 
                     uint32_t runCount,

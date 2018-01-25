@@ -155,7 +155,6 @@ int SWT_RestartTimer(swtBg_t *swt)
     return 0;
 }
 
-
 // wrapper around whatever background tick we want to use
 uint32_t GetBackgroundTimer(void)
 {

@@ -40,13 +40,13 @@ do{ ui = (ui)?(ui)-1:(ui);}while(0)
 __set_PRIMASK(__protect_var_28734); }
 
 typedef void (*voidFunc_f)(void);
-typedef void (*objFunc_f)(void *obj);
-typedef void *(*chainObjFunc_f)(void *obj);
+typedef void (*objFunc_f)(intptr_t obj);
+typedef intptr_t (*chainObjFunc_f)(intptr_t obj);
 
 typedef struct
 {
     objFunc_f cb;
-    void *obj;
+    intptr_t obj;
 } objFuncQueue_t;
 
 #endif

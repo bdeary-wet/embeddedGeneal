@@ -78,21 +78,45 @@ taskHandle_t task1Task;
 taskHandle_t task2Task;
 taskHandle_t task3Task;
 taskHandle_t task4Task;
-
+uint32_t GetTimeuSec(void);
+uint32_t extendedTick;
+uint32_t testusec;
+/// The system tick callback
 void HAL_SYSTICK_Callback(void)
 {
+    // Schedule background timer task
     TS_SignalTask(bgTimerTask);
+    if (uwTick == 0)extendedTick++;
+    testusec = GetTimeuSec();
 }
 
-uint32_t Clock3;
-uint32_t Clock6;
-uint32_t Clock7;
+volatile uint32_t Clock3;
+volatile uint32_t Clock7;
 
+
+/// The timer rollover ISR callback
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if (htim == &htim3) ++Clock3;
-    if (htim == &htim6) ++Clock6;
     if (htim == &htim7) ++Clock7;
+}
+
+uint32_t GetTimeuSec(void)
+{
+    uint32_t change, time1 = (Clock3<<14)+ ((htim3.Instance->CNT)>>2);
+    uint32_t time2;
+    do
+    {
+        time2 = (Clock3<<14)+ ((htim3.Instance->CNT)>>2);
+        if (time2 - time1 > 1)
+        {
+            time1=time2;
+            change=1;
+        }
+        else change = 0;
+    }while(change);
+
+    return time2;
 }
 
 static void subTask(int cnt)
@@ -134,39 +158,43 @@ void task4(void)
 }
 
 
-// Interface to the fast software timer code using the 4 output compare
-// registers of TIM3
-void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
-{
-    if (htim != &htim3) return;
-    switch(htim->Channel)
-    {
-        case HAL_TIM_ACTIVE_CHANNEL_1:
-        SWT_ChanIsr(0);
-        break;
-        case HAL_TIM_ACTIVE_CHANNEL_2:
-        SWT_ChanIsr(1);        
-        break;
-        case HAL_TIM_ACTIVE_CHANNEL_3:
-        SWT_ChanIsr(2);        
-        break;
-        case HAL_TIM_ACTIVE_CHANNEL_4:    
-        SWT_ChanIsr(3);          
-        break;
-        case HAL_TIM_ACTIVE_CHANNEL_CLEARED:
-        break;
-    }
-}
 
-future_t* FutureCallbackIsr(uint32_t uSec, uintptr_t context, objFunc_f callback);
+
 
 uint32_t futureCalled;
 
-void futureTest(void *context)
+int32_t fut2dif;
+void futureTest2(intptr_t startTime)
 {
-    FutureCallbackIsr((uint32_t)context, (uintptr_t)context, futureTest);
+    static int32_t cnt;
     futureCalled++;
+    fut2dif = (GetTimeuSec() - startTime) / ++cnt;
 }
+
+int32_t fut20dif;
+void futureTest20(intptr_t startTime)
+{
+    static int32_t cnt;
+    futureCalled++;
+    fut20dif = (GetTimeuSec() - startTime) / ++cnt;
+}
+
+int32_t fut200dif;
+void futureTest200(intptr_t startTime)
+{
+    static int32_t cnt;
+    futureCalled++;
+    fut200dif = (GetTimeuSec() - startTime) / ++cnt;
+}
+
+int32_t fut2000dif;
+void futureTest2000(intptr_t startTime)
+{
+    static int32_t cnt;
+    futureCalled++;
+    fut2000dif = (GetTimeuSec() - startTime) / ++cnt;
+}
+
 
 
 /* USER CODE END 0 */
@@ -196,7 +224,6 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_TIM6_Init();
   MX_TIM7_Init();
   MX_CRC_Init();
   MX_TIM3_Init();
@@ -209,7 +236,7 @@ int main(void)
   HAL_ResumeTick();
   
   HAL_TIM_Base_Start_IT(&htim3);
-  HAL_TIM_Base_Start_IT(&htim6);
+//  HAL_TIM_Base_Start_IT(&htim6);
   HAL_TIM_Base_Start_IT(&htim7);
   
   SWT_FastInit();
@@ -229,9 +256,10 @@ int main(void)
   TS_SignalTask(task3Task);
     
   // launch future test
-  futureTest((void*)100);
-  futureTest((void*)15000);  
-  futureTest((void*)1023);
+SWT_FastTimerCallback(futureTest2000, 2000000, 256, GetTimeuSec());
+SWT_FastTimerCallback(futureTest200, 200000, 256, GetTimeuSec());
+SWT_FastTimerCallback(futureTest20, 20000, 256, GetTimeuSec());
+SWT_FastTimerCallback(futureTest2, 2000, 256, GetTimeuSec());
     
     
     
@@ -309,12 +337,12 @@ void SystemClock_Config(void)
 */
 static void MX_NVIC_Init(void)
 {
-  /* TIM6_DAC1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM6_DAC1_IRQn, 1, 1);
-  HAL_NVIC_EnableIRQ(TIM6_DAC1_IRQn);
   /* TIM7_DAC2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(TIM7_DAC2_IRQn, 1, 2);
   HAL_NVIC_EnableIRQ(TIM7_DAC2_IRQn);
+  /* TIM3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM3_IRQn, 1, 1);
+  HAL_NVIC_EnableIRQ(TIM3_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
