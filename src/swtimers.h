@@ -99,7 +99,7 @@ uint32_t SWT_FastTimerResolutionNs(void);
 void *_systimerSpace = alloca(SWT_sizeofTimer() * timers);\
 SWT_InitSysTimers(_systimerSpace, SWT_sizeofTimer() * timers)
 
-
+void SWT_FastInit(void);
 
 
 /** @}*/
