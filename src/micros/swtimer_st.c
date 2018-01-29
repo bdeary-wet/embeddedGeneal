@@ -47,15 +47,15 @@ void SWT_MicroSetup(future_t *fut, int chans)
 // start for the first time based on counter
 void SWT_start(future_t *fut)
 {
-    fut->debugCnt1 = getFastCounter();
-    *(fut->hwTarget) = getFastCounter() + fut->duration;
+    fut->debugCnt1 = FAST_TIMER->CNT;
+    *(fut->hwTarget) = FAST_TIMER->CNT + fut->duration;
     // enable the interrupt
     FAST_TIMER->DIER |= fut->timRegMask;
     FAST_TIMER->CCER &= ~fut->compRegMask; // disable compare
     FAST_TIMER->CCER |= fut->compRegMask;  // enable compare
     FAST_TIMER->CR1|=(TIM_CR1_CEN);     // start timer just in case???
     fut->target = *(fut->hwTarget);     // book keeping, 
-    fut->debugCnt1 = getFastCounter();  // how long
+    fut->debugCnt1 = FAST_TIMER->CNT;  // how long
 }
 
 void SWT_stop(future_t *fut)
@@ -69,32 +69,32 @@ void SWT_stop(future_t *fut)
 // assume isr is still enabled
 void SWT_recycle(future_t *fut)
 {
-    fastTimer_t next = fut->target + fut->duration;
-    fastTimer_t now =getFastCounter();
+
+    fastTimer_t now = FAST_TIMER->CNT;
 #ifdef BEST_EFFORTS_REPEAT
-    // if best efforts try to see if timer has passed
-    if ((next-now)  < fut->duration)
-        *(fut->hwTarget) = next;
-    else 
-        *(fut->hwTarget) = now + (fastTimer_t)4;
-    
+//    // if best efforts try to see if timer has passed
+//    if ((next-now)  < fut->duration)
+//        *(fut->hwTarget) = next;
+//    else 
+//        *(fut->hwTarget) = now + (fastTimer_t)4;
+    *(fut->hwTarget) = FAST_TIMER->CNT + fut->duration;
     FAST_TIMER->DIER |= fut->timRegMask; 
     FAST_TIMER->CCER &= ~fut->compRegMask;
     FAST_TIMER->CCER |= fut->compRegMask;
 
     fut->target = *(fut->hwTarget);  
     fut->debugCnt0 = now;
-    fut->debugCnt1 = getFastCounter();    
+    fut->debugCnt1 = FAST_TIMER->CNT;    
 #else
     // if not best, write it fast as we can
-    *(fut->hwTarget) = next;
+    *(fut->hwTarget) = fut->target + fut->duration;
     // FAST_TIMER->DIER |= fut->timRegMask;  // 
     FAST_TIMER->CCER &= ~fut->compRegMask;
     FAST_TIMER->CCER |= fut->compRegMask;
     FAST_TIMER->CR1|=(TIM_CR1_CEN);
     fut->target = *(fut->hwTarget);   
     fut->debugCnt0 = now;   
-    fut->debugCnt1 = getFastCounter();        
+    fut->debugCnt1 = FAST_TIMER->CNT;        
 #endif    
 }
 
