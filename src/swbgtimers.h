@@ -20,7 +20,7 @@ typedef swTime32_t swBgTimer_t;
 
 /// User defined value
 uint32_t GetBackgroundTimer(void);
-#define BACKGROUND_TICKS_PER_MS 1000
+#define BACKGROUND_TICKS_PER_MS 1
 
 /// The background timer object 
 typedef struct swtBg_s swtBg_t;

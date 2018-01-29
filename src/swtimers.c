@@ -167,36 +167,39 @@ void SWT_OnSysTick(void)
 
 
 // callback buffer timerIsr -> pendsv
-static objFuncQueue_t cbBuf[FAST_PEND_DEPTH*TIMER_CHANNELS];  
+static objCallbackWrapper_t cbBuf[FAST_PEND_DEPTH*TIMER_CHANNELS];  
 static genQ_t pendsvQueue;        // queue for callback buffer
 
-objFuncQueue_t *cbPending[TIMER_CHANNELS]; // pointers to pending callbacks
 
 // This is the PendSv service routine, justs pulls callbacks out of the 
 // queue and calls them.  The PendSv is assumed to run at near the lowest
 // priority.
 
+// pend the pendsv
 static inline void pend_pendsv(void)
 {
     SET_BIT(SCB->ICSR, SCB_ICSR_PENDSVSET_Msk);
 }
 
+// check if pendsv in pending
 static inline int test_pendsv(void)
 {
     return READ_BIT(SCB->ICSR, SCB_ICSR_PENDSVSET_Msk);
 }
 
+// clear pend on pendsv
 static inline void clear_pendsv(void)
 {
     SET_BIT(SCB->ICSR, SCB_ICSR_PENDSVCLR_Msk);
 }
+
 
 uint32_t rependSvCnt;
 uint32_t resetCallbackCnt;
 
 void SWT_PendService(void)
 {
-    objFuncQueue_t entry;
+    objCallbackWrapper_t entry;
     // run for as long as there are things in queue
     while (!GenQ_Get(&pendsvQueue, &entry))
     {
@@ -204,14 +207,15 @@ void SWT_PendService(void)
         if (test_pendsv())
         {
             clear_pendsv();
-            ++rependSvCnt;
+            ++rependSvCnt;  // keep track of repends to get an idea about backlog
         }
         // if it looks valid, call it
         if(entry.cb) entry.cb(entry.obj);
-        else ++resetCallbackCnt;
+        else ++resetCallbackCnt;  // keep track of empty callbacks
     }
 }
 
+// global fast handles
 future_t isrFuture[TIMER_CHANNELS];
 
 void SWT_FastInit(void)
@@ -227,8 +231,6 @@ swtFastHandle_t SWT_FastTimerCallback(
                     uint32_t timeInNs, 
                     uint32_t runCount,
                     intptr_t context)
-  
-//future_t* FutureCallbackIsr(uint32_t uSec, uintptr_t context, objFunc_f callback)
 {
     // look for a free channel
     for(int i=0;i<DIM(isrFuture);i++)
@@ -283,6 +285,7 @@ void SWT_ChanIsr(swtFastHandle_t fa)
         // send callback to processor isr
         GenQ_Put(&pendsvQueue, &(fup->cbObj));
         // free the resource
+        SWT_stop(fup);
         fup->cbObj.cb = NULL;
     }
     // schedule the processor isr
@@ -290,22 +293,19 @@ void SWT_ChanIsr(swtFastHandle_t fa)
 }
 
 
-
-
-
 // Delay exiting callback set time from now
 bool FutureReset(future_t *fut, uint32_t delay)
 {
     uint32_t pri = __get_PRIMASK();
-    delay *= T3_COUNTS_PER_USEC;
+    delay = NS_TO_FAST_CLOCKS(delay);
     __set_PRIMASK(1);
+    // if still active
     if(fut->cbObj.cb)
     {
-        uint32_t temp = getFastCounter() + delay;
-        *(fut->hwTarget) = temp;
+        
+        int val = SWT_delay(fut, (fastTimer_t)(getFastCounter() + delay)); 
         __set_PRIMASK(pri);
-        fut->target = temp;  // redundent in background , book keeping in isr
-        return true;
+        return val ;
     }
     __set_PRIMASK(pri);
     return false;
@@ -319,6 +319,7 @@ bool FutureKill(future_t *fut)
     if(fut->cbObj.cb) 
     {
         fut->cbObj.cb = NULL;
+        SWT_stop(fut);
         __set_PRIMASK(pri);
         return true;
     }

@@ -1,11 +1,11 @@
 #include "swbgtimers.h"
 #include "taskService.h"
 
-#ifdef TEST
+//#ifdef TEST
 swtBg_t *timerList;
-#else
-static swtBg_t *timerList;
-#endif    
+//#else
+//static swtBg_t *timerList;
+//#endif    
 
 uint32_t lastBgTime;
 uint32_t maxBgUpdate;
@@ -74,7 +74,7 @@ void SWT_BackgroundTimerTask(
     swt->taskContext = task;
     swt->cb = NULL;
     swt->runCount = runCount;
-    SW_TIMER_SET(swt->timer, timeInMs * BACKGROUND_TICKS_PER_MS, GetBackgroundTimer())
+    SW_TIMER_SET(swt->timer, timeInMs * BACKGROUND_TICKS_PER_MS, GetBackgroundTimer());
     swt->queued = 1;
     swt->paused = 0;  // future use
     // if user tries to reuse an already queued structure, don't re-queue it
@@ -96,7 +96,7 @@ void SWT_BackgroundTimerCallback(
     swt->taskContext = context;
     swt->cb = cb;
     swt->runCount = runCount;
-    SW_TIMER_SET(swt->timer, (timeInMs * BACKGROUND_TICKS_PER_MS), GetBackgroundTimer())
+    SW_TIMER_SET(swt->timer, (timeInMs * BACKGROUND_TICKS_PER_MS), GetBackgroundTimer());
     swt->queued = 1;
     swt->paused = 0;  // future use
     // if user tries to reuse an already queued structure, don't re-queue it
@@ -158,9 +158,9 @@ int SWT_RestartTimer(swtBg_t *swt)
 // wrapper around whatever background tick we want to use
 uint32_t GetBackgroundTimer(void)
 {
-    extern __IO uint32_t *someCounter;
+    extern __IO uint32_t *sysCounter;
 #ifdef TEST
-    (*someCounter)++;
+    (*sysCounter)++;
 #endif    
-    return *someCounter;
+    return *sysCounter;
 }

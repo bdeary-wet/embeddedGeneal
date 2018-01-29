@@ -47,7 +47,7 @@ typedef struct
 {
     objFunc_f cb;
     intptr_t obj;
-} objFuncQueue_t;
+} objCallbackWrapper_t;
 
 #endif
 

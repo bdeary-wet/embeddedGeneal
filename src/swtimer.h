@@ -43,11 +43,11 @@ typedef struct
   
 /// Start a timer   
 #define SW_TIMER_SET(theTimer, theDuration, timeNow) \
-  (theTimer).start = timeNow; (theTimer).duration = theDuration;
+  (theTimer).start = timeNow; (theTimer).duration = theDuration
   
 /// set new match point one duration past last match point  
 #define SW_TIMER_CYCLE(theTimer) \
-  (theTimer).start += (theTimer).duration;
+  (theTimer).start += (theTimer).duration
   
 /// extend timer using existing duration  
 #define SW_TIMER_RESTART(theTimer, timeNow) \
