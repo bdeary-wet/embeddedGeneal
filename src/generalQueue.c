@@ -6,6 +6,9 @@
 #define BUMP(val) \
 (val) >= q->end ? q->base: (val) + q->objectSize;
 
+#define BUMPP(val) \
+(val) >= p->end ? p->base: (val) + p->objectSize;
+
 
 int GenQ_Init(genQ_t *q, void *buffer, uint16_t objectSize, uint16_t totalObjects)
 {
@@ -54,3 +57,88 @@ uint16_t GenQ_ObjectSize(genQ_t *q)
 }
 
 size_t GenQ_Size(void) {return sizeof(genQ_t);}
+
+
+
+
+#define SizeUp4(val) ((((val)+3)>>2)<<2)
+
+
+genPool_t *GenPool_Init(uint32_t *space, size_t spaceSize, uint16_t objectSize)
+{
+    genPool_t *pool = (genPool_t*)space;
+    size_t objects = (spaceSize-sizeof(genPool_t)) /
+                     (SizeUp4(objectSize)+sizeof(genBuf_t));
+    if(objects == 0 || space == NULL || spaceSize < sizeof(genPool_t)+4) return NULL;
+    pool->objectSize = objectSize;
+    pool->cellSize = SizeUp4(objectSize) + sizeof(genBuf_t);
+    pool->end = (genBuf_t*)((uint8_t*)pool->base + (objects-1) * pool->cellSize);
+    pool->next = (genBuf_t*)pool->base;
+    return pool;
+}
+
+genBuf_t *GenPool_GetGenBuf(genPool_t *p)
+{
+    if (!p) return NULL; // bad pool
+    
+    genBuf_t *check = p->next;
+    genBuf_t *end = check;
+    do
+    {
+        genBuf_t *next = (genBuf_t*)((uint8_t*)check + p->cellSize);
+        if (next > p->end) next = (genBuf_t*)p->base;
+        if(!check->size) 
+        {
+            check->size = p->objectSize;
+            if(check->guard == 0)
+            {
+                check->guard = check - (genBuf_t*)p->base;
+                p->next = next;
+                return check;
+            }
+        }
+        check = (genBuf_t*)next;
+    }while (check != end);
+    // final hail mary
+    check = p->next;
+    if(!check->size) 
+    {
+        check->size = p->objectSize;
+        if(check->guard == 0)
+        {
+            check->guard = p->cellSize;
+            return check;
+        }
+    }
+    return NULL;
+}
+
+void *GenPool_Get(genPool_t *p)
+{
+    genBuf_t *buf = GenPool_GetGenBuf(p);
+    if(buf) return buf->buf;
+    return NULL;
+}
+
+int GenPool_ReturnGenBuf(genBuf_t *gbuf)
+{
+    genBuf_t *base = gbuf - gbuf->guard;
+    genPool_t *pool = ((genPool_t*)base)-1;
+    if(pool->objectSize != gbuf->size) return -1;
+    ReleaseGenBuf(gbuf);
+    pool->next = gbuf;
+    return 0;
+}
+
+int GenPool_Return(void *buf)
+{
+    return GenPool_ReturnGenBuf(((genBuf_t*)buf)-1);
+}
+
+
+
+void GenPool_ReturnNoCheck(void *buf)
+{
+    ReleaseGenBuf(((genBuf_t*)buf)-1);
+}
+

@@ -129,6 +129,41 @@ uint16_t GenQ_ObjectSize(genQ_t *q);
 
 size_t GenQ_Size(void);
 
+typedef struct
+{
+    volatile uint32_t size:16;   // a non zero number 1 to some max size
+    volatile uint32_t guard:16;  // the address of the buffer area
+    uint32_t buf[];
+} genBuf_t;
+
+typedef struct genPool_s
+{
+    genBuf_t *next;      // next entry point
+    genBuf_t *end;       // address of last object in buffer
+    size_t objectSize;  // size of the object 
+    size_t cellSize;
+    uint32_t base[];     // buffer start
+} genPool_t;
+
+/**
+
+ */
+#define GenPoolSpace(type, number) \
+(((((sizeof(type)+sizeof(genBuf_t) +3)/4) * number)*4)+sizeof(genPool_t))
+    
+genPool_t *GenPool_Init(uint32_t *space, size_t spaceSize, uint16_t objectSize);
+
+void *GenPool_Get(genPool_t *p);
+genBuf_t *GenPool_GetGenBuf(genPool_t *p);
+int GenPool_Return(void *buf);
+int GenPool_ReturnGenBuf(genBuf_t *buf);
+static inline void ReleaseGenBuf(genBuf_t *gbuf)
+{
+    gbuf->guard = 0;    // order is important
+    gbuf->size = 0;     
+}
+void GenPool_ReturnNoCheck(void *buf);
+
 
 /** @}*/
 #endif // _GENERALQUEUE_H
