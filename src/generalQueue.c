@@ -70,6 +70,7 @@ genPool_t *GenPool_Init(uint32_t *space, size_t spaceSize, uint16_t objectSize)
     size_t objects = (spaceSize-sizeof(genPool_t)) /
                      (SizeUp4(objectSize)+sizeof(genBuf_t));
     if(objects == 0 || space == NULL || spaceSize < sizeof(genPool_t)+4) return NULL;
+    memset(space, 0, spaceSize); // clear the space
     pool->objectSize = objectSize;
     pool->cellSize = SizeUp4(objectSize) + sizeof(genBuf_t);
     pool->end = (genBuf_t*)((uint8_t*)pool->base + (objects-1) * pool->cellSize);
@@ -92,7 +93,7 @@ genBuf_t *GenPool_GetGenBuf(genPool_t *p)
             check->size = p->objectSize;
             if(check->guard == 0)
             {
-                check->guard = check - (genBuf_t*)p->base;
+                check->guard = check - (genBuf_t*)p->base + 1; // add 1 so != 0
                 p->next = next;
                 return check;
             }
@@ -106,7 +107,7 @@ genBuf_t *GenPool_GetGenBuf(genPool_t *p)
         check->size = p->objectSize;
         if(check->guard == 0)
         {
-            check->guard = p->cellSize;
+            check->guard = check - (genBuf_t*)p->base + 1;
             return check;
         }
     }
@@ -120,13 +121,20 @@ void *GenPool_Get(genPool_t *p)
     return NULL;
 }
 
+static genPool_t *genBufLooksGood(genBuf_t *gbuf)
+{
+    genBuf_t *base = gbuf - (gbuf->guard-1); // offset one so not zero
+    genPool_t *pool = ((genPool_t*)base)-1;
+    if(pool->objectSize != gbuf->size) return NULL;    
+    return pool;
+}
+
 int GenPool_ReturnGenBuf(genBuf_t *gbuf)
 {
-    genBuf_t *base = gbuf - gbuf->guard;
-    genPool_t *pool = ((genPool_t*)base)-1;
-    if(pool->objectSize != gbuf->size) return -1;
+    genPool_t *pool = genBufLooksGood(gbuf);
+    if(!pool) return -1;
     ReleaseGenBuf(gbuf);
-    pool->next = gbuf;
+    pool->next = gbuf; // update suggestion 
     return 0;
 }
 
@@ -135,6 +143,12 @@ int GenPool_Return(void *buf)
     return GenPool_ReturnGenBuf(((genBuf_t*)buf)-1);
 }
 
+size_t GenPool_GetSize(void *buf)
+{
+    genBuf_t *gbuf = (genBuf_t*)buf - 1;
+    if (genBufLooksGood(gbuf)) return gbuf->size;
+    return 0;
+}
 
 
 void GenPool_ReturnNoCheck(void *buf)

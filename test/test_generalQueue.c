@@ -14,7 +14,7 @@ void tearDown(void)
 }
 
 
-#define OBJECTS 7
+#define OBJECTS 7  // intentionally prime for pool testing
 
 void test_generalQueue_Init(void)
 {
@@ -149,4 +149,148 @@ void test_generalQueue_Get(void)
         // test IsData
     TEST_ASSERT_EQUAL(0, GenQ_IsData(&queue));
 
+}
+
+#define SizeUp4(val) ((((val)+3)>>2)<<2)
+
+void test_generalPool_init(void)
+{
+    // object with a 32 bit object, should force 4 byte boundary sizing 
+    typedef struct {uint8_t v8; uint16_t v16; uint32_t v32; uint8_t arr32[5];} myObj_t;
+    // object with only odd number of bytes, should byte align
+    typedef struct {uint8_t arr[5];} myObj5_t;
+    genPool_t *pool;
+    genPool_t *pool5;
+    GenPoolAllocate(pool, myObj_t, OBJECTS);
+    GenPoolAllocate(pool5, myObj5_t, OBJECTS);
+    
+    TEST_ASSERT_EQUAL(sizeof(uint32_t),sizeof(genBuf_t)); // fundamental assumption
+    
+    TEST_ASSERT_EQUAL(sizeof(myObj_t), pool->objectSize);
+    TEST_ASSERT_EQUAL(sizeof(myObj5_t), pool5->objectSize);
+    TEST_ASSERT_EQUAL(5, pool5->objectSize); // fundamental assumption
+    // verify size of cells falls on 4 byte boundaries
+    TEST_ASSERT_EQUAL(sizeof(myObj_t)+sizeof(genBuf_t), pool->cellSize);
+    TEST_ASSERT_EQUAL(SizeUp4(sizeof(myObj5_t))+sizeof(genBuf_t), pool5->cellSize);
+    TEST_ASSERT_NOT_EQUAL(sizeof(myObj5_t)+sizeof(genBuf_t), pool5->cellSize);
+    // verily location of last cell
+    TEST_ASSERT_EQUAL((uint8_t*)pool + sizeof(genPool_t) + 
+                      pool->cellSize*(OBJECTS-1)  ,
+                      (uint8_t*)pool->end);
+    TEST_ASSERT_EQUAL((uint8_t*)pool5 + sizeof(genPool_t) + 
+                      pool5->cellSize*(OBJECTS-1)  ,
+                      (uint8_t*)pool5->end);
+    TEST_ASSERT_EQUAL(pool->base, pool->next);
+    TEST_ASSERT_EQUAL(pool5->base, pool5->next);
+}
+
+void test_generalPool_Get(void)
+{
+    // object with a 32 bit object, should force 4 byte boundary sizing 
+    typedef struct {uint8_t v8; uint16_t v16; uint32_t v32; uint8_t arr32[5];} myObj_t;
+    // object with only odd number of bytes, should byte align
+    typedef struct {uint8_t arr[5];} myObj5_t;
+    genPool_t *pool;
+    genPool_t *pool5;
+    GenPoolAllocate(pool, myObj_t, OBJECTS);
+    GenPoolAllocate(pool5, myObj5_t, OBJECTS);
+    
+    uint32_t *cell = (uint32_t*)pool->base + 1;
+    uint32_t *cell5 = (uint32_t*)pool5->base + 1;
+    for (int i=0; i<OBJECTS; i++)
+    {
+        genBuf_t *gbuf = GenPool_GetGenBuf(pool);
+        genBuf_t *gbuf5 = GenPool_GetGenBuf(pool5);
+        TEST_ASSERT_NOT_NULL(gbuf);
+        TEST_ASSERT_NOT_NULL(gbuf5);
+        TEST_ASSERT_EQUAL(sizeof(myObj_t), gbuf->size);
+        TEST_ASSERT_EQUAL(sizeof(myObj5_t), gbuf5->size);
+        TEST_ASSERT_EQUAL(cell - (uint32_t*)pool->base, gbuf->guard);
+        TEST_ASSERT_EQUAL(cell5 - (uint32_t*)pool5->base, gbuf5->guard);  
+        cell += pool->cellSize/4;
+        cell5 += pool5->cellSize/4;
+    }
+    
+    // this should fail since we checked them all out
+    genBuf_t *gbuf = GenPool_GetGenBuf(pool);
+    genBuf_t *gbuf5 = GenPool_GetGenBuf(pool5);
+    TEST_ASSERT_NULL(gbuf);
+    TEST_ASSERT_NULL(gbuf5);
+}
+
+// fill a space with random
+void fillRnd(void *buf, size_t size)
+{
+    for (int i=0; i<size;i++)
+    {
+        ((uint8_t*)buf)[i] = (uint8_t)rand();
+    }
+}
+
+void test_generalPool_Return(void)
+{
+    // object with a 32 bit object, should force 4 byte boundary sizing 
+    typedef struct {uint8_t v8; uint16_t v16; uint32_t v32; uint8_t arr32[5];} myObj_t;
+    // object with only odd number of bytes, should byte align
+    typedef struct {uint8_t arr[5];} myObj5_t;
+    genPool_t *pool;
+    genPool_t *pool5;
+    GenPoolAllocate(pool, myObj_t, OBJECTS);
+    GenPoolAllocate(pool5, myObj5_t, OBJECTS);
+    genPool_t *pools[2] = {pool, pool5};
+    
+    uint32_t *cell = (uint32_t*)pool->base + 1;
+    uint32_t *cell5 = (uint32_t*)pool5->base + 1;
+    
+    genBuf_t *bufs[11];
+    int out = 2;
+    // wind up allocation
+    for (int i=0; i<11; i++)
+    {
+        bufs[i] = GenPool_GetGenBuf(pools[i%2]);
+        fillRnd(bufs[i]->buf, bufs[i]->size);
+    }
+
+    int test = 0;
+    while(test < 1000)
+    {
+        TEST_ASSERT_EQUAL(0,GenPool_ReturnGenBuf(bufs[out]));
+        TEST_ASSERT_NOT_NULL(bufs[out] = GenPool_GetGenBuf(pools[test%2]));
+        fillRnd(bufs[out]->buf, bufs[out]->size);
+        out = (++out)%11;
+        test++;
+    }
+}
+
+void test_generalPool_void_pointer(void)
+{
+    // object with a 32 bit object, should force 4 byte boundary sizing 
+    typedef struct {uint8_t v8; uint16_t v16; uint32_t v32; uint8_t arr32[5];} myObj_t;
+    // object with only odd number of bytes, should byte align
+    typedef struct {uint8_t arr[5];} myObj5_t;
+    genPool_t *pool;
+    genPool_t *pool5;
+    GenPoolAllocate(pool, myObj_t, OBJECTS);
+    GenPoolAllocate(pool5, myObj5_t, OBJECTS);
+    genPool_t *pools[2] = {pool, pool5};
+    
+    
+    void *bufs[11];
+    int out = 2;
+    // wind up allocation
+    for (int i=0; i<11; i++)
+    {
+        bufs[i] = GenPool_Get(pools[i%2]);
+        fillRnd(bufs[i], GenPool_GetSize(bufs[i]));
+    }
+
+    int test = 0;
+    while(test < 1000)
+    {
+        TEST_ASSERT_EQUAL(0,GenPool_Return(bufs[out]));
+        TEST_ASSERT_NOT_NULL(bufs[out] = GenPool_Get(pools[test%2]));
+        fillRnd(bufs[out], GenPool_GetSize(bufs[out]));
+        out = (++out)%11;
+        test++;
+    }
 }

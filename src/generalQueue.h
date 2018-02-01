@@ -153,6 +153,10 @@ typedef struct genPool_s
     
 genPool_t *GenPool_Init(uint32_t *space, size_t spaceSize, uint16_t objectSize);
 
+#define GenPoolAllocate(name, type, number) \
+static uint32_t name##space[GenPoolSpace(type, number)/sizeof(uint32_t)];\
+name = GenPool_Init(name##space, sizeof(name##space), sizeof(type))
+
 void *GenPool_Get(genPool_t *p);
 genBuf_t *GenPool_GetGenBuf(genPool_t *p);
 int GenPool_Return(void *buf);
@@ -163,6 +167,7 @@ static inline void ReleaseGenBuf(genBuf_t *gbuf)
     gbuf->size = 0;     
 }
 void GenPool_ReturnNoCheck(void *buf);
+size_t GenPool_GetSize(void *buf);
 
 
 /** @}*/
