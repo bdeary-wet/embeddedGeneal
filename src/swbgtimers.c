@@ -1,14 +1,29 @@
 #include "swbgtimers.h"
-#include "taskService.h"
+//#include "taskService.h"
 
 //#ifdef TEST
 swtBg_t *timerList;
+
 //#else
 //static swtBg_t *timerList;
+
 //#endif    
 
 uint32_t lastBgTime;
 uint32_t maxBgUpdate;
+
+#if defined( USE_GENDEF ) || defined( TEST )
+extern intptr_t TS_SignalTask(intptr_t task);
+static chainObjFunc_f taskFunc = TS_SignalTask;
+#else
+static objFunc_f taskFunc;
+#endif
+
+
+void SWT_SetTaskCaller(chainObjFunc_f userTaskFunc)
+{
+    taskFunc = userTaskFunc;
+}
 
 // Do the entire list once, process any timers that have reached or passed match 
 void SWT_Background(void)
@@ -53,7 +68,7 @@ void SWT_Background(void)
             }
             // do callback or task call
             if(pend->cb) pend->cb(pend->taskContext);
-            else         TS_SignalTask(pend->taskContext);
+            else if (taskFunc) taskFunc(pend->taskContext);
         }
 
         if (!removed) // if not removed update prev pointer
@@ -67,7 +82,7 @@ void SWT_Background(void)
 
 void SWT_BackgroundTimerTask(
             swtBg_t *swt, 
-            taskHandle_t task, 
+            intptr_t task, 
             uint32_t timeInMs,
             uint16_t runCount)
 {
@@ -158,7 +173,7 @@ int SWT_RestartTimer(swtBg_t *swt)
 // wrapper around whatever background tick we want to use
 uint32_t GetBackgroundTimer(void)
 {
-    extern __IO uint32_t *sysCounter;
+    extern volatile uint32_t *sysCounter;
 #ifdef TEST
     (*sysCounter)++;
 #endif    

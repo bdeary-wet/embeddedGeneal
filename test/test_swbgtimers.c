@@ -1,13 +1,15 @@
 #include "unity.h"
 #include "swbgtimers.h"
-#include "swtimers.h"
+//#include "swtimers.h"
 #include "swtimer.h"
 #include "mock_taskService.h"
 
 __IO uint32_t uwTick;
-__IO uint32_t *someCounter = &uwTick;
+//__IO uint32_t *someCounter = &uwTick;
 
-taskHandle_t task1 = 1000, task2 = 2000;
+volatile uint32_t *sysCounter = &uwTick;
+
+intptr_t task1 = 1000, task2 = 2000;
 
 extern swtBg_t *timerList;
 
@@ -128,7 +130,7 @@ void test_swbgtimers_a_mix_of_countdown_and_continious(void)
     TEST_ASSERT_EQUAL(&t2,t3.next);    
     
     
-    while(timerList && uwTick < 35000)
+    while(timerList && uwTick < 35)
     {
         SWT_Background();    
     }    
@@ -177,10 +179,10 @@ void test_swbgtimers_can_be_reset_and_return_status(void)
     TEST_ASSERT_EQUAL(&t2,t3.next);    
     
     
-    while(timerList && uwTick < 35000)
+    while(timerList && uwTick < 35)
     {
         SWT_Background();    
-        if (uwTick > 20000)
+        if (uwTick > 20)
         {
             TEST_ASSERT_TRUE(SWT_IsTimerActive(&t2));
             TEST_ASSERT_FALSE(SWT_IsTimerActive(&t3));

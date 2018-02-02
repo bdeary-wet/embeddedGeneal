@@ -10,8 +10,9 @@
 #ifndef _SWBGTIMERS_H_
 #define _SWBGTIMERS_H_
 #include "gencmdef.h"
-#include "swtimers.h"
+//#include "swtimers.h"
 #include "swtimer.h"
+
 
 
 /// Timer callback function pointer prototype
@@ -42,7 +43,7 @@ void SWT_Background(void);
 
 void SWT_BackgroundTimerTask(
             swtBg_t *swt, 
-            taskHandle_t task, 
+            intptr_t task, 
             uint32_t timeInMs,
             uint16_t runCount);
 
@@ -59,6 +60,8 @@ int SWT_IsTimerActive(swtBg_t *swt);
 int SWT_IsTimerPaused(swtBg_t *swt);
 int SWT_IsTimerStopped(swtBg_t *swt);
 int SWT_IsTimerRunning(swtBg_t *swt);
+void SWT_SetTaskCaller(chainObjFunc_f taskFunc);
+
 
 
             

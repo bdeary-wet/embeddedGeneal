@@ -1,25 +1,14 @@
 #ifndef _SWTIMERSUPPORT_H_
 #define _SWTIMERSUPPORT_H_
 
-
-
 #ifdef TEST
-typedef struct
-{
-// Device independent variables, used in swTimers.c  
-    objCallbackWrapper_t cbObj;   //
-    uint32_t runCount;      // 0 for continious, else count down
-    fastTimer_t duration;   // the repeat interval
-// Device dependent variables or in this case unit-tests
-    fastTimer_t target;     // the last target
-
-} future_t;
+#include "swtimer_test.h"
 #else
 // The supported micro, change for you project
 #include "swtimer_st.h"
 #endif
 
-#define TICKS_PER_USEC 4;
+#define TICKS_PER_USEC 4
 
 // device specific interface. to be writen for each supported micro
 void SWT_MicroSetup(future_t *fut, int chans);

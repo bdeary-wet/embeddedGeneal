@@ -16,6 +16,8 @@ typedef struct swtH_s
 } swtHandle_t;
 
 
+
+
 typedef enum
 {
     FREE_HANDLE = 0,
@@ -175,23 +177,6 @@ static genQ_t pendsvQueue;        // queue for callback buffer
 // queue and calls them.  The PendSv is assumed to run at near the lowest
 // priority.
 
-// pend the pendsv
-static inline void pend_pendsv(void)
-{
-    SET_BIT(SCB->ICSR, SCB_ICSR_PENDSVSET_Msk);
-}
-
-// check if pendsv in pending
-static inline int test_pendsv(void)
-{
-    return READ_BIT(SCB->ICSR, SCB_ICSR_PENDSVSET_Msk);
-}
-
-// clear pend on pendsv
-static inline void clear_pendsv(void)
-{
-    SET_BIT(SCB->ICSR, SCB_ICSR_PENDSVCLR_Msk);
-}
 
 
 uint32_t rependSvCnt;

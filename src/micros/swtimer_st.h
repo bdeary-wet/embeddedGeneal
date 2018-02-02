@@ -34,6 +34,23 @@ typedef struct
     uint32_t volatile *hwTarget; // where we write the data.
 } future_t;
 
+// pend the pendsv
+static inline void pend_pendsv(void)
+{
+    SET_BIT(SCB->ICSR, SCB_ICSR_PENDSVSET_Msk);
+}
+
+// check if pendsv in pending
+static inline int test_pendsv(void)
+{
+    return READ_BIT(SCB->ICSR, SCB_ICSR_PENDSVSET_Msk);
+}
+
+// clear pend on pendsv
+static inline void clear_pendsv(void)
+{
+    SET_BIT(SCB->ICSR, SCB_ICSR_PENDSVCLR_Msk);
+}
 
 
 void SWT_Tim3IRQHandler(void);

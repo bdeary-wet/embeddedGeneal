@@ -39,8 +39,11 @@ do{ ui = (ui)?(ui)-1:(ui);}while(0)
 #define END_PROTECTED \
 __set_PRIMASK(__protect_var_28734); }
 
+/// plain void function prototype
 typedef void (*voidFunc_f)(void);
+/// void function that takes one parameter (usually an object pointer)
 typedef void (*objFunc_f)(intptr_t obj);
+/// a chainable object function (for making wrappers, decorators, or just returning status
 typedef intptr_t (*chainObjFunc_f)(intptr_t obj);
 
 typedef struct
