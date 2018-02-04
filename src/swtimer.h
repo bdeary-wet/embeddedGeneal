@@ -32,9 +32,15 @@ typedef struct
 /// type to hold a 16bit software timer.
 typedef struct
 {
-    uint16_t start;
-    uint16_t duration;
+    int16_t start;
+    int16_t duration;
 } swTime16_t;
+
+typedef struct
+{
+    swTime32_t timer;
+    uint32_t *source;
+} simpleTimer_t;
 
 /// helper macro used by the inline functions
 /// test if timer has passed
@@ -68,6 +74,7 @@ static inline void swTime32Set(swTime32_t *t, uint32_t duration, uint32_t time)
     t->duration = duration;
 }
 
+
 /** @brief set a timer relative to a time source
  *  
  *  @param [in] t        pointer to timer struct
@@ -79,7 +86,7 @@ static inline void swTime32Set(swTime32_t *t, uint32_t duration, uint32_t time)
 static inline void swTime16Set(swTime16_t *t, uint16_t duration, uint16_t time)  
 {
     t->start = time;
-    t->duration = duration;
+    t->duration = (int16_t)duration;
 }
   
   
@@ -129,7 +136,7 @@ static inline void SW_Timer16Init(timerObj16_t *t, timer16_f timeBase)
 static inline void SW_SetTimer16(timerObj16_t *t, uint16_t duration)
 {
     t->timeObj.start = t->timer();
-    t->timeObj.duration = duration;
+    t->timeObj.duration = (int16_t)duration;
 }
 
 static inline void SW_SetTimer32(timerObj32_t *t, uint32_t duration)
@@ -158,6 +165,32 @@ static inline void SW_ResetTimer32(timerObj32_t *t)
 {
     t->timeObj.start = t->timer() - t->timeObj.start; // save how far we progressed
     t->timeObj.duration = 0;
+}
+
+
+// Another set using pointer to clock counter instead of counter function
+static inline void simpleTimerSetup(simpleTimer_t *timer, uint32_t *counter)
+{
+    timer->timer.start = 0; timer->timer.duration = 0; timer->source = counter;
+}
+
+static inline void simpleTimerStart(simpleTimer_t *timer, uint32_t counts)
+{
+    SW_TIMER_SET(timer->timer, counts, *timer->source);
+}
+
+// reports once then clears
+static inline int simpleTimerPassed(simpleTimer_t *timer)
+{
+    if (timer->timer.duration)
+    {
+        if(SW_TIMER_PASSED(timer->timer, *timer->source))
+        {
+            timer->timer.duration =0;
+            return 1;
+        }
+    }
+    return 0;
 }
 
  /** @} */

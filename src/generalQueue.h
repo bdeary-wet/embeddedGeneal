@@ -18,6 +18,7 @@
 #define _GENERALQUEUE_H
 #include <stdint.h>
 #include <stddef.h>
+#include "gencmdef.h"
 
 
 /// incomplete def of a generic Q object.
@@ -113,6 +114,7 @@ int GenQ_Get(genQ_t *q, void *obj);
  *  @details Tests if data is available in the queue.
  */
 int GenQ_IsData(genQ_t *q);
+int GenQ_IsSpace(genQ_t *q);
 
 /**
  *  @brief Get the configured object size of the queue.
@@ -140,8 +142,9 @@ typedef struct genPool_s
 {
     genBuf_t *next;      // next entry point
     genBuf_t *end;       // address of last object in buffer
+    objFunc_f onRelease; // optional function to call on release
     size_t objectSize;  // size of the object 
-    size_t cellSize;
+    size_t cellSize;    // size of the cell holding the object
     uint32_t base[];     // buffer start
 } genPool_t;
 
@@ -152,10 +155,19 @@ typedef struct genPool_s
 (((((sizeof(type)+sizeof(genBuf_t) +3)/4) * number)*4)+sizeof(genPool_t))
     
 genPool_t *GenPool_Init(uint32_t *space, size_t spaceSize, uint16_t objectSize);
+genPool_t *GenPool_InitWithCallback(
+                    uint32_t *space, 
+                    size_t spaceSize, 
+                    uint16_t objectSize, 
+                    objFunc_f releaseCb); 
 
 #define GenPoolAllocate(name, type, number) \
 static uint32_t name##space[GenPoolSpace(type, number)/sizeof(uint32_t)];\
 name = GenPool_Init(name##space, sizeof(name##space), sizeof(type))
+
+#define GenPoolAllocateWithCallback(name, type, number, callback) \
+static uint32_t name##space[GenPoolSpace(type, number)/sizeof(uint32_t)];\
+name = GenPool_InitWithCallback(name##space, sizeof(name##space), sizeof(type),callback)
 
 void *GenPool_Get(genPool_t *p);
 genBuf_t *GenPool_GetGenBuf(genPool_t *p);
@@ -168,6 +180,14 @@ static inline void ReleaseGenBuf(genBuf_t *gbuf)
 }
 void GenPool_ReturnNoCheck(void *buf);
 size_t GenPool_GetSize(void *buf);
+
+void GenPool_OnEach(genPool_t const *pool, void (*func)(genBuf_t *obj));
+void GenPool_OnEachActive(genPool_t const *pool, void (*func)(genBuf_t *obj));
+void GenPool_OnEachInactive(genPool_t const *pool, void (*func)(genBuf_t *obj));
+
+void Pool_OnEach(genPool_t const *pool, objFunc_f func);
+void Pool_OnEachActive(genPool_t const *pool, objFunc_f func);
+void Pool_OnEachInactive(genPool_t const *pool, objFunc_f func);
 
 
 /** @}*/

@@ -20,7 +20,7 @@ static objFunc_f taskFunc;
 #endif
 
 
-void SWT_SetTaskCaller(chainObjFunc_f userTaskFunc)
+void SWBG_SetTaskCaller(chainObjFunc_f userTaskFunc)
 {
     taskFunc = userTaskFunc;
 }

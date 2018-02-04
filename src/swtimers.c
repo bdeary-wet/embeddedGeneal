@@ -1,165 +1,143 @@
 #include "swtimers.h"
-#include "swtimer.h"
+//#include "swtimer.h"
 #include "gencmdef.h"
-#include "taskService.h"
+//#include "taskService.h"
+#include "generalQueue.h"
 #include <string.h>
+
+#if defined( USE_GENDEF ) || defined( TEST )
+extern intptr_t TS_SignalTask(intptr_t task);
+static objFunc_f taskFunc = (objFunc_f)TS_SignalTask;
+#else
+static objFunc_f taskFunc;
+#endif
+
+void SWT_SetTaskCaller(objFunc_f userTaskFunc)
+{
+    taskFunc = userTaskFunc;
+}
+
+static void onRelease(intptr_t const obj);
 
 typedef struct swtH_s 
 {
-    timerCallback cb;       ///< optional callback pointer
-    uint32_t *counter;      ///< optional counter
-    swTime32_t timer;       ///< timer structure
-    intptr_t contextTask;   ///< holds context or task handle
+    objCallbackWrapper_t cbObj; ///< q-able callback structure or task handle
+    uint32_t downCount;     ///< actual timer, init this last
     uint32_t runCount;      ///< 0 for continuous, else number of runs
-    uint16_t active;        ///< active flag
-    uint16_t spare;
-} swtHandle_t;
+    uint32_t reloadVal;      ///< For continuous timer operation
+    int32_t direction;
+} swt_t;
 
-
-
-
-typedef enum
+// called when timer ticks down to 0
+// returns true if timer still allocated
+static int doTimerTerm(swt_t *timer)
 {
-    FREE_HANDLE = 0,
-    SETTING_UP = 1,
-    TEAR_DOWN = 2,
-    ACTIVE = 3,
-} handleState_e;
+    // if multiple or continuous operation reload timer
+    if(timer->runCount != 1)
+    {
+        if (timer->runCount) timer->runCount--;
+        timer->downCount = timer->reloadVal;
+        return 1;
+    }
+    else // return timer to the pool.
+    {
+        GenPool_Return(timer); // dequeue the timer
+        return 0; // timer deallocated
+    }
+}
 
-uint32_t userSysTicks;
-swtHandle_t *sysTimer;  // pointer to handle pool
-size_t sysTimers;
+static genPool_t *swtTimerPool;
+size_t sysTimers = SW_TIMERS;
 
-swtHandle_t *fastTimer;  // pointer to handle pool
-size_t fastTimers;
 
 // take memory chunk and use it as handle pool
-int SWT_InitSysTimers(void *space, size_t spaceSize)
+int SWT_InitSysTimers(void)
 {
-    sysTimers = spaceSize/sizeof(swtHandle_t);
-    sysTimer = (swtHandle_t*)space;
-    return sysTimers;
+    GenPoolAllocateWithCallback(swtTimerPool, swt_t, SW_TIMERS, onRelease);
+    return SW_TIMERS;
 }
 
-// just get the next free handle from the pool or return NULL if none.
-static swtHandle_t *getNextSys(void)
-{
-    swtHandle_t *out = NULL;
-    for (int i=0; i < sysTimers || out; i++)
-    {
-        START_PROTECTED
-        if (sysTimer[i].active == FREE_HANDLE)
-        {
-            out = &sysTimer[i];
-            out->active = SETTING_UP;
-        }
-        END_PROTECTED
-    }
-    return out;
-}
-
-// let user know size of a handle at runtime
-size_t  SWT_sizeofTimer(void)
-{
-    return sizeof(swtHandle_t);
-}
-
-
-swtHandle_t *SWT_SysTimerCallback(
-            timerCallback cb, 
-            uint32_t timeInMicroSeconds, 
+// start timer with callback 
+swtHandle_t SWT_SysTimerCallback(
+            objFunc_f cb, 
+            uint32_t timeInMilliseconds, 
             uint32_t runCount,
             intptr_t context)
 {
-    swtHandle_t *swt = getNextSys();
+    swt_t *swt = GenPool_Get(swtTimerPool);
     if (swt)
     {
-        swt->contextTask = context;
-        SW_TIMER_SET(swt->timer, timeInMicroSeconds * TICKS_PER_USEC, userSysTicks);
-        swt->counter = NULL;
+        swt->reloadVal = timeInMilliseconds;
         swt->runCount = runCount;
-        swt->cb = cb;
-        swt->active = ACTIVE;
+        swt->cbObj.cb = cb;
+        swt->cbObj.obj = context;
+        swt->downCount = timeInMilliseconds; // set last
     }
     return swt;
 }
             
-swtHandle_t *SWT_SysTimerTask(
-                    taskHandle_t task, 
-                    uint32_t timeInMicroSeconds,
+            
+// use the taskFunc to callback the task scheduler            
+swtHandle_t SWT_SysTimerTask(
+                    intptr_t task, 
+                    uint32_t timeInMilliseconds,
                     uint32_t runCount)
 {
-    swtHandle_t *swt = getNextSys();
-    if (swt)
-    {
-        swt->contextTask = task;
-        SW_TIMER_SET(swt->timer, timeInMicroSeconds * TICKS_PER_USEC, userSysTicks);
-        swt->counter = NULL;
-        swt->runCount = runCount;
-        swt->cb = NULL;
-        swt->active = ACTIVE;
-    }
-    return swt;
+    if (!taskFunc) return NULL;
+    return SWT_SysTimerCallback(taskFunc,timeInMilliseconds,runCount,task);
 }
-                    
-swtHandle_t *SWT_SysTimerCount(
-                    uint32_t *counter,
-                    uint32_t timeInMicroSeconds,
-                    uint32_t runCount,
-                    taskHandle_t task)
+        
+
+// attach a timer to a user timer        
+swtHandle_t SWT_SysTimerCount(
+                    int32_t *myCount,
+                    int32_t timeInMilliseconds,
+                    uint32_t countLimit)
 {
-    swtHandle_t *swt = getNextSys();
+    swt_t *swt = GenPool_Get(swtTimerPool);
     if (swt)
     {
-        swt->contextTask = task;
-        SW_TIMER_SET(swt->timer, timeInMicroSeconds * TICKS_PER_USEC, userSysTicks);
-        swt->counter = counter;
-        swt->runCount = runCount;
-        swt->cb = NULL;
-        swt->active = ACTIVE;
-    }
-    return swt;
-}                   
-
-// process a handle and return it to the pool if ready
-static void sysProcess(swtHandle_t *swt)
-{
-    if(swt->active == ACTIVE) // only process if active
-    {
-        if (SW_TIMER_PASSED(swt->timer, userSysTicks))
+        swt->cbObj.obj = (intptr_t)myCount;
+        swt->cbObj.cb = NULL;
+        swt->reloadVal = timeInMilliseconds;
+        swt->runCount = countLimit;
+        if(timeInMilliseconds < 0)
         {
-            // make local copy
-            timerCallback cb = swt->cb;
-            intptr_t contextTask = swt->contextTask;
-            uint32_t *counter = swt->counter;
-            // look if countdown
-            if (swt->runCount == 1) 
-            {
-                swt->active = FREE_HANDLE;
-            }
-            else if (swt->runCount) swt->runCount--;
-            // process actions
-            if (counter) (*counter)++;
-            if (cb)
-            {
-                cb(contextTask);
-            }
-            else if(contextTask)
-            {
-                TS_SignalTask(contextTask);
-            }
+            swt->direction = -1;
+            swt->downCount = -timeInMilliseconds;  // must be last
+        }
+        else
+        {
+            swt->direction = 1;
+            swt->downCount = timeInMilliseconds;  // must be last
         }
     }
+    return swt;
+}     
+
+uint32_t SWT_GetCount(swtHandle_t timer)
+{
+    return timer->downCount;
 }
+
+
+
+// callback buffer timerIsr -> pendsv
+static objCallbackWrapper_t cbBuf[FAST_PEND_DEPTH*TIMER_CHANNELS];  
+static genQ_t pendsvQueue;        // queue for callback buffer
+
+void runTimers(intptr_t const obj);
 
 // Call inside the system tick 
 void SWT_OnSysTick(void)
 {
-    swtHandle_t *swt = sysTimer;
-    for (int i=0; i<sysTimers; i++)
-    {
-        sysProcess(swt++);
-    }
+#ifdef HIGHSPEED  // if triggered by some other timer
+    static objCallbackWrapper_t run;
+    if(!run.cb){ run.cb = runTimers; run.obj = (intptr_t)swtTimerPool; }
+    GenQ_Put(&pendsvQueue, &run); // queue the process
+#else // Timer is systeick                  
+    runTimers((intptr_t)swtTimerPool);
+#endif
 }
 
 //----------------------------------------------------------------------------//
@@ -168,9 +146,7 @@ void SWT_OnSysTick(void)
 // pendsv isr service to process.
 
 
-// callback buffer timerIsr -> pendsv
-static objCallbackWrapper_t cbBuf[FAST_PEND_DEPTH*TIMER_CHANNELS];  
-static genQ_t pendsvQueue;        // queue for callback buffer
+
 
 
 // This is the PendSv service routine, justs pulls callbacks out of the 
@@ -249,7 +225,7 @@ swtFastHandle_t SWT_FastTimerCount(
                     uint32_t *counter,
                     uint32_t timeInNs, 
                     uint32_t runCount,
-                    taskHandle_t task)
+                    intptr_t task)
 {
 return (swtFastHandle_t)NULL;
 }
@@ -314,6 +290,63 @@ bool FutureKill(future_t *fut)
 
 
 
+// on active function, process a swt_t
+static void countDown(intptr_t const obj)
+{
+    swt_t *timer = (swt_t*)obj;
+    
+    // if counter is running
+    if(timer->downCount)
+    {
+        // if counter is expiring
+        if(1 == timer->downCount--)
+        {
+            // if we have a callback
+            if(timer->cbObj.cb) {
+                // queue fails
+                if (GenQ_IsSpace(&pendsvQueue))
+                {
+                    if (doTimerTerm(timer))
+                    {
+#ifdef HIGHSPEED        // if triggered by some other timer
+                        GenQ_Put(&pendsvQueue, &(timer->cbObj)); // queue the cb
+#else                   // if triggered in background call locally.
+                        timer->cbObj.cb(timer->cbObj.obj);
+#endif
+                    }
+                }
+                else // can't queue the callback to delay
+                {
+                    timer->downCount=1;
+                }
+            }
+            else if (timer->cbObj.obj) // not callback by user's counter
+            {
+                (*((int32_t*)timer->cbObj.obj)) += timer->direction;
+                doTimerTerm(timer);
+            }
+        }
+    }
+}
+
+static void onRelease(intptr_t const obj)
+{
+    swt_t *timer = (swt_t*)obj;
+#ifdef HIGHSPEED        // if triggered by some other timer
+    GenQ_Put(&pendsvQueue, &(timer->cbObj)); // queue the cb
+#else                   // if triggered in background call locally.
+    timer->cbObj.cb(timer->cbObj.obj);
+#endif
+    
+}
+
+// This function prototype is compatible with object callbacks
+// and can be queued to the pendsv
+void runTimers(intptr_t const obj)
+{
+    genPool_t const *tp = (genPool_t const *)obj;
+    Pool_OnEachActive(tp,countDown);
+}
 
 
 

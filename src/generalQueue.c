@@ -63,8 +63,16 @@ size_t GenQ_Size(void) {return sizeof(genQ_t);}
 
 #define SizeUp4(val) ((((val)+3)>>2)<<2)
 
-
 genPool_t *GenPool_Init(uint32_t *space, size_t spaceSize, uint16_t objectSize)
+{
+    return GenPool_InitWithCallback(space, spaceSize, objectSize, NULL);
+}
+
+genPool_t *GenPool_InitWithCallback(
+                    uint32_t *space, 
+                    size_t spaceSize, 
+                    uint16_t objectSize, 
+                    objFunc_f releaseCb)
 {
     genPool_t *pool = (genPool_t*)space;
     size_t objects = (spaceSize-sizeof(genPool_t)) /
@@ -75,6 +83,7 @@ genPool_t *GenPool_Init(uint32_t *space, size_t spaceSize, uint16_t objectSize)
     pool->cellSize = SizeUp4(objectSize) + sizeof(genBuf_t);
     pool->end = (genBuf_t*)((uint8_t*)pool->base + (objects-1) * pool->cellSize);
     pool->next = (genBuf_t*)pool->base;
+    pool->onRelease = releaseCb;
     return pool;
 }
 
@@ -121,11 +130,16 @@ void *GenPool_Get(genPool_t *p)
     return NULL;
 }
 
-static genPool_t *genBufLooksGood(genBuf_t *gbuf)
+// recover pool pointer based on the buf object
+#ifdef TEST
+genPool_t *genBufLooksGood(genBuf_t *gbuf)
+#else
+static genPool_t *genBufLooksGood(genBuf_t *gbuf)    
+#endif
 {
     genBuf_t *base = gbuf - (gbuf->guard-1); // offset one so not zero
     genPool_t *pool = ((genPool_t*)base)-1;
-    if(pool->objectSize != gbuf->size) return NULL;    
+    if(pool->objectSize != gbuf->size) return NULL;
     return pool;
 }
 
@@ -133,6 +147,7 @@ int GenPool_ReturnGenBuf(genBuf_t *gbuf)
 {
     genPool_t *pool = genBufLooksGood(gbuf);
     if(!pool) return -1;
+    if (pool->onRelease) pool->onRelease((intptr_t)gbuf->buf);
     ReleaseGenBuf(gbuf);
     pool->next = gbuf; // update suggestion 
     return 0;
@@ -156,3 +171,71 @@ void GenPool_ReturnNoCheck(void *buf)
     ReleaseGenBuf(((genBuf_t*)buf)-1);
 }
 
+/// apply a function to all items in pool
+void GenPool_OnEach(genPool_t const *pool, void (*func)(genBuf_t *obj))
+{
+    for(uint8_t *next = (uint8_t*)pool->base; 
+        next <= (uint8_t*)pool->end; 
+        next += pool->cellSize)
+    {
+        func((genBuf_t*)next);
+    }
+}
+
+/// apply a function to all active items in pool
+void GenPool_OnEachActive(genPool_t const *pool, void (*func)(genBuf_t *obj))
+{
+    for(uint8_t *next = (uint8_t*)pool->base; 
+        next <= (uint8_t*)pool->end; 
+        next += pool->cellSize)
+    {
+        genBuf_t *obj = (genBuf_t*)next;
+        if(obj->size) func(obj);
+    }
+}
+
+/// apply a function to all active items in pool
+void GenPool_OnEachInactive(genPool_t const *pool, void (*func)(genBuf_t *obj))
+{
+    for(uint8_t *next = (uint8_t*)pool->base; 
+        next <= (uint8_t*)pool->end; 
+        next += pool->cellSize)
+    {
+        genBuf_t *obj = (genBuf_t*)next;
+        if(!obj->size) func(obj);
+    }
+}
+
+void Pool_OnEach(genPool_t const *pool, objFunc_f func)
+{
+    for(uint8_t *next = (uint8_t*)pool->base; 
+        next <= (uint8_t*)pool->end; 
+        next += pool->cellSize)
+    {
+        genBuf_t *obj = (genBuf_t*)next;
+        func((intptr_t)obj->buf);
+    }    
+    
+}
+
+void Pool_OnEachActive(genPool_t const *pool, objFunc_f func)
+{
+    for(uint8_t *next = (uint8_t*)pool->base; 
+        next <= (uint8_t*)pool->end; 
+        next += pool->cellSize)
+    {
+        genBuf_t *obj = (genBuf_t*)next;
+        if(obj->size) func((intptr_t)obj->buf);
+    }
+}
+
+void Pool_OnEachInactive(genPool_t const *pool, objFunc_f func)
+{
+    for(uint8_t *next = (uint8_t*)pool->base; 
+        next <= (uint8_t*)pool->end; 
+        next += pool->cellSize)
+    {
+        genBuf_t *obj = (genBuf_t*)next;
+        if(!obj->size) func((intptr_t)obj->buf);
+    }    
+}

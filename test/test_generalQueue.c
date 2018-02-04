@@ -152,6 +152,15 @@ void test_generalQueue_Get(void)
 }
 
 #define SizeUp4(val) ((((val)+3)>>2)<<2)
+genPool_t *genBufLooksGood(genBuf_t *gbuf);
+int objReleased;
+void onRelease(intptr_t obj)
+{
+    objReleased++;
+    TEST_ASSERT_NOT_EQUAL(0, ((genBuf_t*)obj -1)->size);
+    TEST_ASSERT_NOT_EQUAL(0, ((genBuf_t*)obj -1)->guard);
+    TEST_ASSERT_NOT_NULL(genBufLooksGood((genBuf_t*)obj -1));
+}
 
 void test_generalPool_init(void)
 {
@@ -236,14 +245,14 @@ void test_generalPool_Return(void)
     genPool_t *pool;
     genPool_t *pool5;
     GenPoolAllocate(pool, myObj_t, OBJECTS);
-    GenPoolAllocate(pool5, myObj5_t, OBJECTS);
+    GenPoolAllocateWithCallback(pool5, myObj5_t, OBJECTS,onRelease);
     genPool_t *pools[2] = {pool, pool5};
     
     uint32_t *cell = (uint32_t*)pool->base + 1;
     uint32_t *cell5 = (uint32_t*)pool5->base + 1;
     
     genBuf_t *bufs[11];
-    int out = 2;
+    int out = 3;
     // wind up allocation
     for (int i=0; i<11; i++)
     {
@@ -252,6 +261,7 @@ void test_generalPool_Return(void)
     }
 
     int test = 0;
+    objReleased = 0;
     while(test < 1000)
     {
         TEST_ASSERT_EQUAL(0,GenPool_ReturnGenBuf(bufs[out]));
@@ -260,17 +270,38 @@ void test_generalPool_Return(void)
         out = (++out)%11;
         test++;
     }
+    
+    TEST_ASSERT_EQUAL(499, objReleased);
+}
+
+
+
+// object with a 32 bit object, should force 4 byte boundary sizing 
+typedef struct {uint8_t v8; uint16_t v16; uint32_t v32; uint8_t arr32[5];} myObj_t;
+// object with only odd number of bytes, should byte align
+typedef struct {uint8_t arr[5];} myObj5_t;
+
+uint32_t pCalled;
+void processSet(genBuf_t *obj)
+{
+    myObj_t *test = (myObj_t*)obj->buf;
+    test->v32 = test->v16 + test->v8;
+    pCalled++;
+}
+
+void processTest(genBuf_t *obj)
+{
+    myObj_t *test = (myObj_t*)obj->buf;
+    TEST_ASSERT_EQUAL(test->v32, test->v16 + test->v8);
+    pCalled++;
 }
 
 void test_generalPool_void_pointer(void)
 {
-    // object with a 32 bit object, should force 4 byte boundary sizing 
-    typedef struct {uint8_t v8; uint16_t v16; uint32_t v32; uint8_t arr32[5];} myObj_t;
-    // object with only odd number of bytes, should byte align
-    typedef struct {uint8_t arr[5];} myObj5_t;
+
     genPool_t *pool;
     genPool_t *pool5;
-    GenPoolAllocate(pool, myObj_t, OBJECTS);
+    GenPoolAllocateWithCallback(pool, myObj_t, OBJECTS, onRelease);
     GenPoolAllocate(pool5, myObj5_t, OBJECTS);
     genPool_t *pools[2] = {pool, pool5};
     
@@ -285,6 +316,7 @@ void test_generalPool_void_pointer(void)
     }
 
     int test = 0;
+    objReleased = 0;
     while(test < 1000)
     {
         TEST_ASSERT_EQUAL(0,GenPool_Return(bufs[out]));
@@ -293,4 +325,23 @@ void test_generalPool_void_pointer(void)
         out = (++out)%11;
         test++;
     }
+    TEST_ASSERT_EQUAL(501, objReleased);
+    // make sure we have at least 3 inactive
+    GenPool_Return(bufs[3]);
+    GenPool_Return(bufs[6]);
+    GenPool_Return(bufs[1]);
+    
+    // At this point data should be full of random.
+    // Test the on each functions by comparing all to sets of active and inactive
+    pCalled = 0;
+    GenPool_OnEach(pool, processSet);
+    TEST_ASSERT_EQUAL(OBJECTS, pCalled);
+    pCalled = 0;
+    GenPool_OnEachActive(pool, processTest);
+    int found = pCalled;
+    TEST_ASSERT_TRUE(pCalled < OBJECTS);
+    GenPool_OnEachInactive(pool, processTest);
+    TEST_ASSERT_EQUAL(OBJECTS, pCalled);
+    
+    
 }

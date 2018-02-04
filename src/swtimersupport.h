@@ -1,6 +1,8 @@
 #ifndef _SWTIMERSUPPORT_H_
 #define _SWTIMERSUPPORT_H_
 
+#define SW_TIMERS 16
+
 #ifdef TEST
 #include "swtimer_test.h"
 #else
