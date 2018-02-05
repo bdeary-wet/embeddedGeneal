@@ -55,7 +55,8 @@ void TS_Yield(void)
     TSC_Yield(tmr);
 }
 
-genQ_t *TS_GetQueueObject(uint8_t taskNo)
+
+genQ_t *TS_GetQueueObjectOutside(taskHandle_t taskNo)
 {
     return TSC_GetQueueObject(tmr, taskNo);
 }

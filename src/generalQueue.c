@@ -10,6 +10,7 @@
 (val) >= p->end ? p->base: (val) + p->objectSize;
 
 
+
 int GenQ_Init(genQ_t *q, void *buffer, uint16_t objectSize, uint16_t totalObjects)
 {
     if (!q || totalObjects < 2) return -1;
