@@ -7,7 +7,8 @@
 
 #if defined( USE_GENDEF ) || defined( TEST )
 extern intptr_t TS_SignalTask(intptr_t task);
-static objFunc_f taskFunc = (objFunc_f)TS_SignalTask;
+static void sigWrapper(intptr_t task){TS_SignalTask(task);}
+static objFunc_f taskFunc = sigWrapper;
 #else
 static objFunc_f taskFunc;
 #endif

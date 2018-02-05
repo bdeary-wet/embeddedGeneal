@@ -14,13 +14,14 @@ uint32_t maxBgUpdate;
 
 #if defined( USE_GENDEF ) || defined( TEST )
 extern intptr_t TS_SignalTask(intptr_t task);
-static chainObjFunc_f taskFunc = TS_SignalTask;
+static void sigWrapper(intptr_t task){TS_SignalTask(task);}
+static objFunc_f taskFunc = sigWrapper;
 #else
 static objFunc_f taskFunc;
 #endif
 
 
-void SWBG_SetTaskCaller(chainObjFunc_f userTaskFunc)
+void SWBG_SetTaskCaller(objFunc_f userTaskFunc)
 {
     taskFunc = userTaskFunc;
 }

@@ -60,7 +60,7 @@ int SWT_IsTimerActive(swtBg_t *swt);
 int SWT_IsTimerPaused(swtBg_t *swt);
 int SWT_IsTimerStopped(swtBg_t *swt);
 int SWT_IsTimerRunning(swtBg_t *swt);
-void SWBG_SetTaskCaller(chainObjFunc_f userTaskFunc);
+void SWBG_SetTaskCaller(objFunc_f userTaskFunc);
 
 
 
