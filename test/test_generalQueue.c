@@ -2,6 +2,7 @@
 #include "generalQueue.h"
 #include <string.h>
 #include <malloc.h>
+#include <stdlib.h>
 
 // copied from generalQueue.c for testing internals
 
@@ -43,10 +44,11 @@ void test_generalQueue_Init(void)
     TEST_ASSERT_EQUAL(2, GenQ_ObjectSize(mlq_pnt));
     free(mlq_pnt);
    
-    // static allocation of byte queue length 10
-    QBUILDER_STATIC(bq_pnt, uint8_t, 10);
-    TEST_ASSERT_EQUAL(1, GenQ_ObjectSize(bq_pnt));
-    
+    typedef struct{int32_t i1; uint8_t b1;} mixed_t;   
+    GENERAL_QUEUE(gq2, mixed_t, 8);
+    TEST_ASSERT_EQUAL(sizeof(mixed_t),GenQ_ObjectSize(&gq2)); 
+
+   
     // attach a queue object to an array of struct
     struct {int i1; char c2; short int s3;} sarray[7];
     genQ_t sq;
