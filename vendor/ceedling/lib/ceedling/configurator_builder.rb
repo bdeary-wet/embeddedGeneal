@@ -64,7 +64,8 @@ class ConfiguratorBuilder
   def populate_defaults(config, defaults)
     defaults.keys.sort.each do |section|
       defaults[section].keys.sort.each do |entry|
-        config[section][entry] = defaults[section][entry].deep_clone if (config[section].nil? or config[section][entry].nil?)
+        config[section] = {} if config[section].nil?
+        config[section][entry] = defaults[section][entry].deep_clone if (config[section][entry].nil?)
       end
     end
   end
@@ -315,6 +316,32 @@ class ConfiguratorBuilder
   end
 
 
+  def collect_release_existing_compilation_input(in_hash)
+    release_input = @file_wrapper.instantiate_file_list
+
+    paths =
+      in_hash[:collection_paths_source] +
+      in_hash[:collection_paths_include]
+
+    paths << File.join(in_hash[:cexception_vendor_path], CEXCEPTION_LIB_PATH) if (in_hash[:project_use_exceptions])
+
+    paths.each do |path|
+      release_input.include( File.join(path, "*#{in_hash[:extension_header]}") )
+      if File.exists?(path) and not File.directory?(path)
+        release_input.include( path )
+      else
+        release_input.include( File.join(path, "*#{in_hash[:extension_source]}") )
+      end
+    end
+
+    @file_system_utils.revise_file_list( release_input, in_hash[:files_source] )
+    @file_system_utils.revise_file_list( release_input, in_hash[:files_include] )
+    # finding assembly files handled explicitly through other means
+
+    return {:collection_release_existing_compilation_input => release_input}
+  end
+
+
   def collect_all_existing_compilation_input(in_hash)
     all_input = @file_wrapper.instantiate_file_list
 
@@ -391,10 +418,12 @@ class ConfiguratorBuilder
 
     # if we're using mocks & a unity helper is defined & that unity helper includes a source file component (not only a header of macros),
     # then link in the unity_helper object file too
-    if ( in_hash[:project_use_mocks] and
-         in_hash[:cmock_unity_helper] and
-         @file_wrapper.exist?(in_hash[:cmock_unity_helper].ext(in_hash[:extension_source])) )
-      objects << File.basename(in_hash[:cmock_unity_helper])
+    if ( in_hash[:project_use_mocks] and in_hash[:cmock_unity_helper] )
+      in_hash[:cmock_unity_helper].each do |helper|
+        if @file_wrapper.exist?(helper.ext(in_hash[:extension_source]))
+          objects << File.basename(helper)
+        end
+      end
     end
 
     # no build paths here so plugins can remap if necessary (i.e. path mapping happens at runtime)

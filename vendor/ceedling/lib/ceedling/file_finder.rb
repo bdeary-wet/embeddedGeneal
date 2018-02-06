@@ -83,7 +83,7 @@ class FileFinder
   end
   
   
-  def find_compilation_input_file(file_path, complain=:error)
+  def find_compilation_input_file(file_path, complain=:error, release=false)
     found_file = nil
     
     source_file = File.basename(file_path).ext(@configurator.extension_source)
@@ -105,6 +105,12 @@ class FileFinder
           @file_wrapper.directory_listing( File.join(@configurator.cmock_mock_path, '*') ),
           complain)
 
+    elsif release
+      found_file =
+        @file_finder_helper.find_file_in_collection(
+          source_file,
+          @configurator.collection_release_existing_compilation_input,
+          complain)
     else
       found_file = 
         @file_finder_helper.find_file_in_collection(
@@ -128,5 +134,8 @@ class FileFinder
     return @file_finder_helper.find_file_in_collection(assembly_file, @configurator.collection_all_assembly, :error)
   end
     
+  def find_file_from_list(file_path, file_list, complain)
+    return @file_finder_helper.find_file_in_collection(file_path, file_list, complain)
+  end
 end
 

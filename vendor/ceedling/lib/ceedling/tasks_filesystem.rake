@@ -18,6 +18,9 @@ CLOBBER.include(File.join(PROJECT_BUILD_RELEASE_ROOT, '**/*'))
 CLOBBER.include(File.join(PROJECT_LOG_PATH, '**/*'))
 CLOBBER.include(File.join(PROJECT_TEMP_PATH, '**/*'))
 
+# just in case they're using git, let's make sure we allow them to preserved the build directory if desired.
+CLOBBER.exclude(File.join(TESTS_BASE_PATH), '**/.gitkeep')
+
 # because of cmock config, mock path can optionally exist apart from standard test build paths
 CLOBBER.include(File.join(CMOCK_MOCK_PATH, '*'))
 
@@ -30,14 +33,20 @@ task(:clean) do
   if (not @ceedling[:task_invoker].invoked?(/^clobber$/))
     @ceedling[:streaminator].stdout_puts("\nCleaning build artifacts...\n(For large projects, this task may take a long time to complete)\n\n")
   end
-  CLEAN.each { |fn| REMOVE_FILE_PROC.call(fn) }
+  begin
+    CLEAN.each { |fn| REMOVE_FILE_PROC.call(fn) }
+  rescue
+  end
 end
 
 # redefine clobber so we can override how it advertises itself
 desc "Delete all generated files (and build artifacts)."
 task(:clobber => [:clean]) do
   @ceedling[:streaminator].stdout_puts("\nClobbering all generated files...\n(For large projects, this task may take a long time to complete)\n\n")
-  CLOBBER.each { |fn| REMOVE_FILE_PROC.call(fn) }
+  begin
+    CLOBBER.each { |fn| REMOVE_FILE_PROC.call(fn) }
+  rescue
+  end
 end
 
 
@@ -49,35 +58,35 @@ task(:directories => PROJECT_BUILD_PATHS) { @ceedling[:dependinator].touch_force
 
 # list paths discovered at load time
 namespace :paths do
-  
+
   paths = @ceedling[:setupinator].config_hash[:paths]
   paths.each_key do |section|
     name = section.to_s.downcase
     path_list = Object.const_get("COLLECTION_PATHS_#{name.upcase}")
-    
+
     if (path_list.size != 0)
       desc "List all collected #{name} paths."
       task(name.to_sym) { puts "#{name} paths:"; path_list.sort.each {|path| puts " - #{path}" } }
     end
   end
-  
+
 end
 
 
 # list files & file counts discovered at load time
 namespace :files do
-  
+
   categories = [
     ['test',   COLLECTION_ALL_TESTS],
     ['source', COLLECTION_ALL_SOURCE],
     ['header', COLLECTION_ALL_HEADERS]
     ]
   categories << ['assembly', COLLECTION_ALL_ASSEMBLY] if (RELEASE_BUILD_USE_ASSEMBLY)
-  
+
   categories.each do |category|
     name       = category[0]
     collection = category[1]
-    
+
     desc "List all collected #{name} files."
     task(name.to_sym) do
       puts "#{name} files:"
@@ -85,7 +94,7 @@ namespace :files do
       puts "file count: #{collection.size}"
     end
   end
-  
+
 end
 
 

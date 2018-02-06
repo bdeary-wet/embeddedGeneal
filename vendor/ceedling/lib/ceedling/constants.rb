@@ -36,6 +36,8 @@ unless defined?(PROJECT_ROOT)
   PROJECT_ROOT = Dir.pwd()
 end
 
+GENERATED_DIR_PATH = [['vendor', 'ceedling'], 'src', "test", ['test', 'support'], 'build'].each{|p| File.join(*p)}
+
 EXTENSION_WIN_EXE    = '.exe'
 EXTENSION_NONWIN_EXE = '.out'
 
@@ -87,7 +89,7 @@ OPERATION_LINK_SYM     = :link     unless defined?(OPERATION_LINK_SYM)
 RUBY_STRING_REPLACEMENT_PATTERN = /#\{.+\}/
 RUBY_EVAL_REPLACEMENT_PATTERN   = /^\{(.+)\}$/
 TOOL_EXECUTOR_ARGUMENT_REPLACEMENT_PATTERN = /(\$\{(\d+)\})/
-TEST_STDOUT_STATISTICS_PATTERN  = /-+\s*(\d+)\s+Tests\s+(\d+)\s+Failures\s+(\d+)\s+Ignored\s+(OK|FAIL)\s*/i
+TEST_STDOUT_STATISTICS_PATTERN  = /\n-+\s*(\d+)\s+Tests\s+(\d+)\s+Failures\s+(\d+)\s+Ignored\s+(OK|FAIL)\s*/i
 
 NULL_FILE_PATH = '/dev/null'
 

@@ -18,6 +18,7 @@ class CMockGenerator
     @weak        = @config.weak
     @ordered     = @config.enforce_strict_ordering
     @framework   = @config.framework.to_s
+    @fail_on_unexpected_calls = @config.fail_on_unexpected_calls
 
     @subdir      = @config.subdir
 
@@ -102,6 +103,7 @@ class CMockGenerator
     file << "\n"
     file << "/* Ignore the following warnings, since we are copying code */\n"
     file << "#if defined(__GNUC__) && !defined(__ICC) && !defined(__TMS470__)\n"
+    file << "#pragma GCC diagnostic push\n"
     file << "#if !defined(__clang__)\n"
     file << "#pragma GCC diagnostic ignored \"-Wpragmas\"\n"
     file << "#endif\n"
@@ -124,7 +126,12 @@ class CMockGenerator
   end
 
   def create_mock_header_footer(header)
-    header << "\n#endif\n"
+    header << "\n"
+    header << "#if defined(__GNUC__) && !defined(__ICC) && !defined(__TMS470__)\n"
+    header << "#pragma GCC diagnostic pop\n"
+    header << "#endif\n"
+    header << "\n"
+    header << "#endif\n"
   end
 
   def create_source_header_section(file, filename, functions)
@@ -196,6 +203,11 @@ class CMockGenerator
     file << "  CMock_Guts_MemFreeAll();\n"
     file << "  memset(&Mock, 0, sizeof(Mock));\n"
     file << functions.collect {|function| @plugins.run(:mock_destroy, function)}.join
+
+    unless (@fail_on_unexpected_calls)
+      file << functions.collect {|function| @plugins.run(:mock_ignore, function)}.join
+    end
+
     if (@ordered)
       file << "  GlobalExpectCount = 0;\n"
       file << "  GlobalVerifyOrder = 0;\n"

@@ -9,11 +9,13 @@ foo.txt
 *.[oa]
 *.tmp
 *.bin
-/bin
+bin/
 /Documents/*.html
-/testResults
-/build/test
-*/build
+testResults/
+build/test
+build/
+docs/
+
 # !/build/.gitkeep
 *.lst
 *.sct

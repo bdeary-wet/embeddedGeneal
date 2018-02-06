@@ -1,6 +1,6 @@
 
-RELEASE_COMPILE_TASK_ROOT  = RELEASE_TASK_ROOT + 'compile:'
-RELEASE_ASSEMBLE_TASK_ROOT = RELEASE_TASK_ROOT + 'assemble:'
+RELEASE_COMPILE_TASK_ROOT  = RELEASE_TASK_ROOT + 'compile:'  unless defined?(RELEASE_COMPILE_TASK_ROOT)
+RELEASE_ASSEMBLE_TASK_ROOT = RELEASE_TASK_ROOT + 'assemble:' unless defined?(RELEASE_ASSEMBLE_TASK_ROOT)
 
 
 if (RELEASE_BUILD_USE_ASSEMBLY)
@@ -21,7 +21,7 @@ end
 
 rule(/#{PROJECT_RELEASE_BUILD_OUTPUT_C_PATH}\/#{'.+\\'+EXTENSION_OBJECT}$/ => [
     proc do |task_name|
-      @ceedling[:file_finder].find_compilation_input_file(task_name)
+      @ceedling[:file_finder].find_compilation_input_file(task_name, :error, true)
     end
   ]) do |object|
   @ceedling[:generator].generate_object_file(
@@ -35,13 +35,17 @@ end
 
 
 rule(/#{PROJECT_RELEASE_BUILD_TARGET}/) do |bin_file|
+  objects, libraries = @ceedling[:release_invoker].sort_objects_and_libraries(bin_file.prerequisites)
+  tool     = TOOLS_RELEASE_LINKER.clone
+  lib_args = @ceedling[:release_invoker].convert_libraries_to_arguments(libraries)
   map_file = @ceedling[:configurator].project_release_build_map
   @ceedling[:generator].generate_executable_file(
-    TOOLS_RELEASE_LINKER,
+    tool,
     RELEASE_SYM,
-    bin_file.prerequisites,
+    objects,
     bin_file.name,
-    map_file )
+    map_file,
+    lib_args )
   @ceedling[:release_invoker].artifactinate( bin_file.name, map_file, @ceedling[:configurator].release_build_artifacts )
 end
 

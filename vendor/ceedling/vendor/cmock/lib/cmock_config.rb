@@ -19,6 +19,7 @@ class CMockConfig
     :attributes                  => ['__ramfunc', '__irq', '__fiq', 'register', 'extern'],
     :c_calling_conventions       => ['__stdcall', '__cdecl', '__fastcall'],
     :enforce_strict_ordering     => false,
+    :fail_on_unexpected_calls    => true,
     :unity_helper_path           => false,
     :treat_as                    => {},
     :treat_as_void               => [],

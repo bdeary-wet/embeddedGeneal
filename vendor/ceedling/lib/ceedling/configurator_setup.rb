@@ -37,6 +37,7 @@ class ConfiguratorSetup
     flattened_config.merge!(@configurator_builder.collect_assembly(flattened_config))
     flattened_config.merge!(@configurator_builder.collect_source(flattened_config))
     flattened_config.merge!(@configurator_builder.collect_headers(flattened_config))
+    flattened_config.merge!(@configurator_builder.collect_release_existing_compilation_input(flattened_config))
     flattened_config.merge!(@configurator_builder.collect_all_existing_compilation_input(flattened_config))
     flattened_config.merge!(@configurator_builder.collect_test_and_vendor_defines(flattened_config))
     flattened_config.merge!(@configurator_builder.collect_release_and_vendor_defines(flattened_config))
@@ -76,7 +77,11 @@ class ConfiguratorSetup
     validation = []
 
     validation << @configurator_validator.validate_filepath(config, :project, :build_root)
-    validation << @configurator_validator.validate_filepath(config, :cmock, :unity_helper) if config[:cmock][:unity_helper]
+    if config[:cmock][:unity_helper]
+      config[:cmock][:unity_helper].each do |path|
+        validation << @configurator_validator.validate_filepath_simple( path, :cmock, :unity_helper ) 
+      end
+    end
 
     config[:project][:options_paths].each do |path|
       validation << @configurator_validator.validate_filepath_simple( path, :project, :options_paths )

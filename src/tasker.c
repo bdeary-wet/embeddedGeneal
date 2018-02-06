@@ -5,7 +5,7 @@
 int TaskerRoundRobin(tasker_t *to)
 {
     if(!to->event) return -1;
-    int go = 1;
+
     unsigned stop = to->jumpTable.tableLen;
     unsigned start = to->next;
     do {

@@ -8,27 +8,31 @@
  *  assumed to be some function pointer for processing data based on the key.
  *  
  */
+ /** \addtogroup usefulObjects
+ *  @{
+ */
 #ifndef _OPTABLE_H
 #define _OPTABLE_H
 
 #include <stddef.h>
 #include <stdint.h>
 
-// the default key size is 16 bits but could be 8 or 32.
-// if a string is required, the cmpfunc must be changed to use strcmp.
+/// the default key size is 16 bits but could be 8 or 32.
+/// if a string is required, the cmpfunc must be changed to use strcmp.
 typedef uint16_t opTblKey_t;
 #define OP_KEY_MSB 0x8000 // used to do the unsigned compare using the sign bit.
 
-// One table entry, key and associated pointer
+/// One table entry, key and associated pointer
 typedef struct
 {
     opTblKey_t key; // the key
     void *value;    // associated value
 } opTableEntry_t;
 
-// prototype of a user supplied function to 
+/// prototype of a user supplied function to 
 typedef void (*opTblEntryProcessor_f)(opTableEntry_t const *entry, uintptr_t context);
 
+/// object defines a lookup table and associated processor function
 typedef struct
 {
     const opTableEntry_t *table; 
@@ -80,4 +84,6 @@ void OPT_InitTable(opTable_t *to,
                    size_t tableLen, 
                    opTblEntryProcessor_f processor);
 
+ /** @} */
+                   
 #endif // _OPTABLE_H
