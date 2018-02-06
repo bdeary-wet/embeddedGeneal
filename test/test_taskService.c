@@ -91,16 +91,16 @@ void test_taskService_Init(void)
         TEST_ASSERT_NOT_EQUAL(0, task[i] = TS_AddTask(task1));
     }
 
-    QBUILDER_STATIC(q1,uint8_t, 10);
-    TEST_ASSERT_NOT_EQUAL(0, task[i++] = TS_AddTaskWithQueue(task2,q1));
-    QBUILDER_STATIC(q2,uint8_t, 10);
-    TEST_ASSERT_NOT_EQUAL(0, task[i++] = TS_AddTaskWithQueue(task2,q2));
-    QBUILDER_STATIC(q3,uint8_t, 10);
-    TEST_ASSERT_NOT_EQUAL(0, task[i++] = TS_AddTaskWithQueue(task2,q3));    
-    QBUILDER_STATIC(q4,uint8_t, 10);
-    TEST_ASSERT_NOT_EQUAL(0, task[i++] = TS_AddTaskWithQueue(task2,q4));    
-    QBUILDER_STATIC(q5,uint8_t, 10);
-    TEST_ASSERT_NOT_EQUAL(0, task[i++] = TS_AddTaskWithQueue(task2,q5));    
+    GENERAL_QUEUE(q1,uint8_t, 10);
+    TEST_ASSERT_NOT_EQUAL(0, task[i++] = TS_AddTaskWithQueue(task2,&q1));
+    GENERAL_QUEUE(q2,uint8_t, 10);
+    TEST_ASSERT_NOT_EQUAL(0, task[i++] = TS_AddTaskWithQueue(task2,&q2));
+    GENERAL_QUEUE(q3,uint8_t, 10);
+    TEST_ASSERT_NOT_EQUAL(0, task[i++] = TS_AddTaskWithQueue(task2,&q3));    
+    GENERAL_QUEUE(q4,uint8_t, 10);
+    TEST_ASSERT_NOT_EQUAL(0, task[i++] = TS_AddTaskWithQueue(task2,&q4));    
+    GENERAL_QUEUE(q5,uint8_t, 10);
+    TEST_ASSERT_NOT_EQUAL(0, task[i++] = TS_AddTaskWithQueue(task2,&q5));    
 
 
     // verify we can't add anymore
