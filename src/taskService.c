@@ -35,6 +35,12 @@ int TS_SignalTask(taskHandle_t task)
     return TSC_SignalTask(tmr, task);
 }
 
+void TS_SignalTaskNoReturn(taskHandle_t task)
+{
+    TSC_SignalTask(tmr, task);
+}
+    
+
 int TS_Put(taskHandle_t task, void const *val)
 {
     return TSC_Put(tmr, task ,val);
@@ -56,9 +62,9 @@ void TS_Yield(void)
 }
 
 
-genQ_t *TS_GetQueueObjectOutside(taskHandle_t taskNo)
+genQ_t *TS_GetQueueObjectOutside(taskHandle_t task)
 {
-    return TSC_GetQueueObject(tmr, taskNo);
+    return TSC_GetQueueObject(tmr, task);
 }
 
 size_t TS_InitGetSize(int expectedTasks)

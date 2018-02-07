@@ -98,7 +98,7 @@ taskHandle_t TS_AddTask(taskFunc_f task);
 /**
  *  @brief Add a task to the table with an associated queue structure.
  *  
- *  @param [in] task the function pointer of the task
+ *  @param [in] taskFn the function pointer of the task
  *  @param [in] q    a pointer to a prior initialized queue structure
  *  @return the assigned task number
  *  
@@ -108,20 +108,21 @@ taskHandle_t TS_AddTask(taskFunc_f task);
  *  
  *  Copyright 2018
  */
-taskHandle_t TS_AddTaskWithQueue(taskFunc_f task, genQ_t *q);
+taskHandle_t TS_AddTaskWithQueue(taskFunc_f taskFn, genQ_t *q);
 
 /** @brief Signal a task to run
  *  
- *  @param [in] taskNo the assigned task number
+ *  @param [in] task the assigned task number
  *  @return 0 or error code
  *  
  *  @details Details
  */
-int TS_SignalTask(taskHandle_t taskNo);
+int TS_SignalTask(taskHandle_t task);
+void TS_SignalTaskNoReturn(taskHandle_t task);
 
 /** @brief Put a value into a task's queue and schedule the task
  *  
- *  @param [in] taskNo the assigned task number
+ *  @param [in] task the assigned task number
  *  @param [in] val    pointer to the value to copy to the queue
  *  @return 0 or error code
  *  
@@ -162,12 +163,12 @@ void TS_Yield(void);
 /** @brief helper function to allow a function outside of a running task to
  *         dequeue data from the queue.
  *  
- *  @param [in] taskNo the task number
+ *  @param [in] task the task number
  *  @return TS_QueueEmpty, 0 or error code
  *  
  *  @details Details
  */
-genQ_t *TS_GetQueueObjectOutside(taskHandle_t taskNo);
+genQ_t *TS_GetQueueObjectOutside(taskHandle_t task);
 
 
 /** @brief The main background task processor.
