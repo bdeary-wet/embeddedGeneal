@@ -91,7 +91,6 @@ void SWT_BackgroundTimerTask(
     swt->cb = NULL;
     swt->runCount = runCount;
     SW_TIMER_SET(swt->timer, timeInMs * BACKGROUND_TICKS_PER_MS, GetBackgroundTimer());
-    swt->queued = 1;
     swt->paused = 0;  // future use
     // if user tries to reuse an already queued structure, don't re-queue it
     if(!swt->queued || swt->check != &timerList) 
@@ -99,6 +98,7 @@ void SWT_BackgroundTimerTask(
         swt->next = timerList;
         timerList = swt;
         swt->check = &timerList;
+        swt->queued = 1;
     }
 }
 
@@ -113,7 +113,7 @@ void SWT_BackgroundTimerCallback(
     swt->cb = cb;
     swt->runCount = runCount;
     SW_TIMER_SET(swt->timer, (timeInMs * BACKGROUND_TICKS_PER_MS), GetBackgroundTimer());
-    swt->queued = 1;
+
     swt->paused = 0;  // future use
     // if user tries to reuse an already queued structure, don't re-queue it
     if(!swt->queued || swt->check != &timerList)
@@ -121,6 +121,7 @@ void SWT_BackgroundTimerCallback(
         swt->next = timerList;
         timerList = swt;
         swt->check = &timerList;
+        swt->queued = 1;
     }
 }
 
@@ -131,7 +132,9 @@ void SWT_BackgroundTimersReset(void)
     while(next && next->check == &timerList)
     {
         swtBg_t *this = next->next;
+        next->queued = 0;
         next->next = NULL;
+        next->check = NULL;
         next = this;
     }
     return;
