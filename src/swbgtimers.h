@@ -29,11 +29,12 @@ typedef struct swtBg_s
 {
     swtBg_t *next;      // linked list pointer;
     swBgTimer_t timer;
+    objCallbackWrapper_t cbObj;
     timerCallback cb;   // if null, do task schedule else do callback
     intptr_t taskContext;   // task number or context based on cb 
     uint16_t runCount;  // down counter
     uint8_t queued:1;
-    uint8_t paused:2;  // 1 = paused, 2 = stopped (reset)
+    uint8_t paused:2;  // 1 = paused, 2 = stopped, 3 = killed
     uint8_t spare:5;
     swtBg_t **check; // points at the queue head pointer when setup
 
@@ -54,12 +55,19 @@ void SWT_BackgroundTimerCallback(
             uint16_t runCount,
             intptr_t context);    
 
+/// Best efforts to stop timer
+void SWT_BackgroundTimerKill(swtBg_t *swt);
+/// Restart the pending duration
+void SWT_BackgroundTimerDelay(swtBg_t *swt);
+/// destroy all timers
 void SWT_BackgroundTimersReset(void);
 
 int SWT_IsTimerActive(swtBg_t *swt);
 int SWT_IsTimerPaused(swtBg_t *swt);
 int SWT_IsTimerStopped(swtBg_t *swt);
 int SWT_IsTimerRunning(swtBg_t *swt);
+int SWT_DidTimerFinish(swtBg_t *swt);
+    
 void SWBG_SetTaskCaller(objFunc_f userTaskFunc);
 
 
