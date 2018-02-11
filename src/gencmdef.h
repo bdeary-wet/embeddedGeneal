@@ -52,6 +52,9 @@ typedef struct
     intptr_t obj;
 } objCallbackWrapper_t;
 
+#define HEX_NIBBLE(val) \
+(char)((val & 0xf) > 9?(val & 0xF)+'7':(val & 0xF) + '0')
+
 #define BYTE2HEX(byte) \
 (((byte & 0xF0) < 0xA0)? \
     (((uint16_t)(byte & 0xF0)>>4)+'0') + ((uint16_t)(((byte & 0xF) < 0xA)?\
