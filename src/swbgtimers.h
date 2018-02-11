@@ -14,7 +14,6 @@
 #include "swtimer.h"
 
 
-
 /// Timer callback function pointer prototype
 typedef void (*timerCallback)(intptr_t context);
 typedef swTime32_t swBgTimer_t;
@@ -30,8 +29,6 @@ typedef struct swtBg_s
     swtBg_t *next;      // linked list pointer;
     swBgTimer_t timer;
     objCallbackWrapper_t cbObj;
-    timerCallback cb;   // if null, do task schedule else do callback
-    intptr_t taskContext;   // task number or context based on cb 
     uint16_t runCount;  // down counter
     uint8_t queued:1;
     uint8_t paused:2;  // 1 = paused, 2 = stopped, 3 = killed
