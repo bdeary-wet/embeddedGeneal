@@ -24,7 +24,6 @@ typedef struct
 } myBlk_t;
 
 
-
 GenPoolDefine(myPool, myBlk_t, 10, NULL);
 
 void test_defined_object(void)
@@ -34,4 +33,11 @@ void test_defined_object(void)
     TEST_ASSERT_EQUAL_PTR((void*)&(myPool->next->obj[0]), (void*)&(myPool_pool.pool[0].poolObject));    
 }
 
+PoolObjId_t getPoolId(void *p_obj);
 
+void test_GenPool_allocate(void)
+{
+    void *obj = GenPool_allocate(myPool);
+    TEST_ASSERT_EQUAL_PTR(getPoolId(obj).pool, myPool);
+    TEST_ASSERT_EQUAL_PTR(getPoolId(obj).index, 0);
+}

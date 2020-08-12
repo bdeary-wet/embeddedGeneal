@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef TEST
+#define STATIC
+#endif
 #ifndef STATIC 
 #define STATIC static
 #endif
