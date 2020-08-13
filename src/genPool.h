@@ -33,12 +33,18 @@ typedef union Context_t
 // generic callback function pointer
 typedef void (*GenCallback_t)(Context_t context);
 
+typedef struct CbInstance_t
+{
+    GenCallback_t cb;
+    Context_t context;
+} CbInstance_t;
+
+
 typedef struct
 {
     volatile uintptr_t theboss:16;// a non zero number 1 to some max size
     volatile uintptr_t guard:16;  // the address of the buffer area
-    GenCallback_t onRelease;      // optional per buffer callback
-    Context_t context;            // optional context variable
+    CbInstance_t onRelease;
     uintptr_t obj[];              // Not actually part of the structure
 } PreBuf_t;
 
@@ -47,14 +53,13 @@ typedef struct
 {
     size_t objectSize;  // size of the object 
     int index;          // the offset in the pool
-    GenCallback_t onRelease; // optional per buffer callback
-    Context_t context;  // optional context variable    
+    CbInstance_t onRelease; // optional per buffer callback
 } PreBufMeta_t;
 
 typedef struct GenPool_t
 {
-    PreBuf_t *next;      // next entry point
-    PreBuf_t * const end;       // address of last object in buffer
+    PreBuf_t * volatile next; // next entry point
+    PreBuf_t * const end;     // address of last object in buffer
     GenCallback_t onRelease; // optional function to call on release
     size_t const objectSize;  // size of the object 
     size_t const cellSize;    // size of the cell holding the object
@@ -84,7 +89,7 @@ typedef struct { \
 } name##_pool_t; /* fooPool_pool_t */ \
 /* actually instantiate and initialize */   \
 name##_pool_t name##_pool = (name##_pool_t){ \
-    .pool = {0}, /* zero the storage */ \
+    .pool = {[0].genBuf.guard=1}, /* zero the storage */ \
     .poolHeader.next=(PreBuf_t *)name##_pool.pool, /* set first */ \
     .poolHeader.end=(PreBuf_t *const)&name##_pool.pool[name##_len-1], /* assign const */ \
     .poolHeader.objectSize=sizeof(type), /* fill in derived info in base class */ \
@@ -92,6 +97,13 @@ name##_pool_t name##_pool = (name##_pool_t){ \
     .poolHeader.onRelease=onRel, \
 }; \
 GenPool_t * const name = (GenPool_t*)&name##_pool
+
+/**
+ * @brief Reset a previously defined pool
+ * 
+ * @param self the pool object pointer
+ */
+void GenPool_reset(GenPool_t *self);
 
 // General calls using base class
 /**
@@ -130,7 +142,22 @@ void GenPool_return(void *obj);
  */
 PreBufMeta_t GenPool_object_meta(void *obj);
 
+/**
+ * @brief Get a copy of the callback information and disable the callback in the object.
+ * 
+ * @param obj pointer to pool object
+ * @return CbInstance_t The callback information
+ */
+CbInstance_t GenPool_extract_callback(void *obj);
 
+/**
+ * @brief Set or update the on-return callback function attacjed to the pool object
+ * 
+ * @param obj pointer to the pool object
+ * @param cb the callback function pointer
+ * @param context the associated context 
+ */
+void GenPool_set_return_callback(void *obj, GenCallback_t cb, Context_t context);
 
 
 #endif // _GENPOOL_H
