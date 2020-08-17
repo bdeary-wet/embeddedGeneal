@@ -4,12 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#ifdef TEST
-#define STATIC
-#endif
-#ifndef STATIC 
-#define STATIC static
-#endif
+#include <config.h>
 
 /// incomplete def of a generic Q object.
 typedef struct GenQ_t
@@ -27,35 +22,29 @@ typedef struct GenQ_t
  */
 #define GenQDef(name, store, len) \
 enum {store##_len=len}; \
-GenQ_t name = (GenQ_t){ \
+GenQ_t name##_instance = (GenQ_t){ \
     .base_add=store, \
     .next=(uint8_t*)store, \
     .last=(uint8_t*)store, \
     .end=(uint8_t*)&store[store##_len - 1], \
-    .objectSize=sizeof store[0] }
+    .objectSize=sizeof store[0] }; \
+GenQ_t * const name = &name##_instance    
 
 /**
  * @brief macro for defining a static queue of given type and length
  * 
  */
 #define StaticGenQDef(name, type, len) \
-enum {name##_len=len}; \
-STATIC type name##_space[name##_len] = {0}; \
-STATIC GenQ_t name = (GenQ_t){ \
+enum {name##_len = len }; \
+STATIC type name##_space[name##_len+1] = {0}; \
+STATIC GenQ_t name##_instance = (GenQ_t){ \
     .base_add=name##_space, \
     .next=(uint8_t*)name##_space, \
     .last=(uint8_t*)name##_space, \
-    .end=(uint8_t*)&name##_space[name##_len - 1], \
-    .objectSize=sizeof(type) }
+    .end=(uint8_t*)&name##_space[name##_len], \
+    .objectSize=sizeof(type) }; \
+STATIC GenQ_t * const name = &name##_instance
 
-
-typedef enum
-{
-    Queue_OK = 0,
-    Queue_FULL,
-    Queue_EMPTY,
-    Queue_PARAMETER,
-} GenQStatus_t;
 
 /**
  *  @brief Initialize a queue object
@@ -72,7 +61,9 @@ typedef enum
  *           Remember the queue must be sized one larger than needed and queue
  *           sizes of less than 2 are not allowed. 
  */
-GenQStatus_t GenQ_Init(GenQ_t *q, void *buffer, uint16_t objectSize, uint16_t totalObjects);
+Status_t GenQ_Init(GenQ_t *q, void *buffer, uint16_t objectSize, uint16_t totalObjects);
+
+void GenQ_Reset(GenQ_t *q);
 
 /**
  *  @brief Copy a user object into the queue.
@@ -83,7 +74,7 @@ GenQStatus_t GenQ_Init(GenQ_t *q, void *buffer, uint16_t objectSize, uint16_t to
  *  
  *  @details Copies the user object into the queue if there is space available. 
  */
-GenQStatus_t GenQ_Put(GenQ_t *q, void const *obj);
+Status_t GenQ_Put(GenQ_t *q, void const *obj);
 
 /**
  *  @brief Copy a user object out of the queue
@@ -94,7 +85,7 @@ GenQStatus_t GenQ_Put(GenQ_t *q, void const *obj);
  *  
  *  @details De-queues an object if available.      
  */
-GenQStatus_t GenQ_Get(GenQ_t *q, void *obj);
+Status_t GenQ_Get(GenQ_t *q, void *obj);
 
 /**
  *  @brief Test if data is available in the queue.

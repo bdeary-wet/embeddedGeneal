@@ -8,11 +8,19 @@
  * Copyright 2020, WetDesigns
  * 
  */
+#include <config.h>
 #include "genPool.h"
 
 #include <stdlib.h>
 #include <assert.h>
 
+
+typedef struct
+{
+    GenPool_t *pool;
+    PreBuf_t  *pre;
+    int index;
+} PoolObjId_t;
 
 STATIC PoolObjId_t getPoolId(void *buf);
 
@@ -21,18 +29,17 @@ void GenPool_reset(GenPool_t *self)
     if (self && offsetof(GenPool_t, base)+(uintptr_t)self == (uintptr_t)(self->base))
     {
         int index = 0;
-        PreBuf_t *next = (PreBuf_t*)(self->base);
+        PreBuf_t *next = self->base;
         while (next <= self->end)
         {
             next->theboss = 0;
             next->guard = index ? 0: 1;
             index++;
-            next = (PreBuf_t*)( (uintptr_t)(self->base) + self->cellSize * index);
+            next = (PreBuf_t*)( (uintptr_t)(self->base) + self->cellSize * index );
         }
-        self->next = (PreBuf_t*)(self->base);
+        self->next = self->base;
     }
 }
-
 
 // given the user's object pointer, work back to find if it
 // belongs to a pool and if it does return the meta data
@@ -116,8 +123,9 @@ void *GenPool_allocate_with_callback(GenPool_t *self, GenCallback_t cb, Context_
 }
 
 // return the object to the pool, execute enclosed callback if set
-void GenPool_return(void *obj)
+Status_t GenPool_return(void *obj)
 {
+    Status_t status = Status_OK;
     PoolObjId_t id = getPoolId(obj);
     if (id.pool != NULL)
     {
@@ -130,6 +138,11 @@ void GenPool_return(void *obj)
         id.pool->next = id.pre;
         id.pre->theboss=0; // this releases the object back to the pool
     }    
+    else
+    {
+        status = Status_Unexpected;
+    }
+    return status;
 }
 
 // extract any callback from object, (disables it in the obj)
@@ -146,14 +159,59 @@ CbInstance_t GenPool_extract_callback(void *obj)
 }
 
 // set or update the on return callback
-void GenPool_set_return_callback(void *obj, GenCallback_t cb, Context_t context)
+Status_t GenPool_set_return_callback(void *obj, GenCallback_t cb, Context_t context)
 {
     PoolObjId_t id = getPoolId(obj);
     if (id.pool != NULL)
     {    
         id.pre->onRelease.context = context;
         id.pre->onRelease.cb = cb;
+        return Status_OK;
     }
+    return Status_Unexpected;
 }
 
+
+// Not expected to use in production, checks the status of a pool
+// and returns available slots.
+Status_t GenPool_status(GenPool_t const *self, int *availale, int *total)
+{
+    int unclaimed = 0;
+
+    if(self->next <= self->end && self->next >= self->base)
+    {
+        int guard = 1; // is array index + 1
+        PreBuf_t const *next = self->base;
+        while (next <= self->end)
+        {
+            if (0 == next->guard || guard == next->guard)
+            {
+                if(0 == next->theboss) 
+                {
+                    unclaimed++;
+                }
+                else
+                {
+                    uint16_t boss = (uint16_t)(((intptr_t)next - (intptr_t)self) >> 2);
+                    if (boss != next->theboss)
+                    {
+                        return Status_BadState;
+                    }
+                }
+            } 
+            else // guard was wrong
+            {
+                return Status_BadState;
+            }
+
+            next = (PreBuf_t*)( (uintptr_t)(self->base) + self->cellSize * guard );
+            guard++;
+        }
+        if(availale) *availale = unclaimed;
+        if(total) *total = guard-1;
+        return Status_OK;
+    } 
+    // pointer are messedup
+    return Status_BadState;
+}
 

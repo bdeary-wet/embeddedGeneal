@@ -2,43 +2,46 @@
  * @file genPool.h
  * @author bdeary (bdeary@wetdesign.com)
  * @brief Generic pool object for creating a pool of any type
- * @version 0.1
  * @date 2020-08-10
+ * @details A General Pool is a structure that holds some fixed number 
+ *      of objects in memory.  The user then asks for one of the objects
+ *      and receives a pointer to the object.  When the user is finished they
+ *      return the object to the pool.
+ *      This is not an array and the objects are not held in contigious memory
+ *      so having the address of one object does not allow direct access to 
+ *      another object. 
+ *      Each object is associated with some meta data to help recover the 
+ *      object size if needed and the object's id number within the pool. 
+ *      The meta data may also include an optional callback function and a 
+ *      context variable.
+ *      The callback function is called automatically with the associated 
+ *      context as its parameter before the pool object is returned to the 
+ *      pool.
+ *      A default callback may be assigned at pool definition or a callback
+ *      may be attached after a pool object is allocated.
+ *      The callback mechanism is intended to decouple the pool object from 
+ *      the calling code for situations like passing buffers to base class
+ *      methods that can then execute the derived class method on completion.
+ *      The pool objects should be managed like any other memory resource
+ *      (like using malloc) so make sure you free them when you don't need
+ *      them anymore.
+ * 
+ *      Since this is primarily for use in embedded systems without malloc,
+ *      There are helper macros for compile time creation of pools.
+ *      To create a fixed number of objects use
+ *      #define GenPoolDefine(name, type, len, onRelease)  
+ *      To create a pool of objects in a given space defined by an array of
+ *      fixed size.
+ *      #define MakeGenPool(name, type, onRelease, space)
+ * 
+ * 
  * 
  * Copyright 2020, WetDesigns
  * 
  */
 #ifndef _GENPOOL_H
 #define _GENPOOL_H
-#include <stdint.h>
-
-#ifdef TEST
-#define STATIC
-#endif
-#ifndef STATIC 
-#define STATIC static
-#endif
-
-/**
- * @brief This is a object type that can hold any single
- *        value usefull as a context 
- *        (usually a pointer to data or pointer to code)
- */
-typedef union Context_t
-{
-    intptr_t v_context;     // can hold any data pointer or reasonable integer
-    void (*f_context)(union Context_t *context); // can hold a function pointer
-} Context_t;
-
-// generic callback function pointer
-typedef void (*GenCallback_t)(Context_t context);
-
-typedef struct CbInstance_t
-{
-    GenCallback_t cb;
-    Context_t context;
-} CbInstance_t;
-
+#include <config.h>
 
 typedef struct
 {
@@ -63,15 +66,8 @@ typedef struct GenPool_t
     GenCallback_t onRelease; // optional function to call on release
     size_t const objectSize;  // size of the object 
     size_t const cellSize;    // size of the cell holding the object
-    uintptr_t base[];     // buffer start, not part of the structure
+    PreBuf_t base[];     // buffer start, not part of the structure
 } GenPool_t;
-
-typedef struct
-{
-    GenPool_t *pool;
-    PreBuf_t  *pre;
-    int index;
-} PoolObjId_t;
 
 /**
  * @brief define a pool object pointer and the associated pool object
@@ -97,6 +93,27 @@ name##_pool_t name##_pool = (name##_pool_t){ \
     .poolHeader.onRelease=onRel, \
 }; \
 GenPool_t * const name = (GenPool_t*)&name##_pool
+
+#define StaticGenPoolDefine(name, type, len, onRel) \
+enum {name##_len = (len)}; \
+typedef struct { \
+    PreBuf_t genBuf; \
+    type poolObject[1]; /* the MyChunk object */ \
+} name##_objtype; /* creates type fooPool_objtype */ \
+typedef struct { \
+    GenPool_t poolHeader; /* the base class object */ \
+    name##_objtype pool[name##_len]; /* the pool storage */ \
+} name##_pool_t; /* fooPool_pool_t */ \
+/* actually instantiate and initialize */   \
+STATIC name##_pool_t name##_pool = (name##_pool_t){ \
+    .pool = {[0].genBuf.guard=1}, /* zero the storage */ \
+    .poolHeader.next=(PreBuf_t *)name##_pool.pool, /* set first */ \
+    .poolHeader.end=(PreBuf_t *const)&name##_pool.pool[name##_len-1], /* assign const */ \
+    .poolHeader.objectSize=sizeof(type), /* fill in derived info in base class */ \
+    .poolHeader.cellSize = sizeof(name##_objtype), /* needed to find base from instance */ \
+    .poolHeader.onRelease=onRel, \
+}; \
+STATIC GenPool_t * const name = (GenPool_t*)&name##_pool
 
 /**
  * @brief Reset a previously defined pool
@@ -126,13 +143,24 @@ void *GenPool_allocate(GenPool_t *self);
 void *GenPool_allocate_with_callback(GenPool_t *self, GenCallback_t cb, Context_t context);
 
 /**
+ * @brief Diagnostic to check status of pool and return size and available 
+ * 
+ * @param self - pool object pointer
+ * @param availale [out] - pointer to slot to return number of available obj i pool
+ * @param total [out] - pointer to slot to return the max number of objs in pool  
+ * @return Status_t Ok or BadState
+ */
+Status_t GenPool_status(GenPool_t const *self, int *availale, int *total);
+
+
+/**
  * @brief return a object to its pool
  * 
  * @param obj pointer to original allocated object
  * @details fails silently if object was not a pool object or was
  *   already returned.
  */
-void GenPool_return(void *obj);
+Status_t GenPool_return(void *obj);
 
 /**
  * @brief Get copy of the pool object meta data
@@ -157,7 +185,7 @@ CbInstance_t GenPool_extract_callback(void *obj);
  * @param cb the callback function pointer
  * @param context the associated context 
  */
-void GenPool_set_return_callback(void *obj, GenCallback_t cb, Context_t context);
+Status_t GenPool_set_return_callback(void *obj, GenCallback_t cb, Context_t context);
 
 
 #endif // _GENPOOL_H

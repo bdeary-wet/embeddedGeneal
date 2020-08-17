@@ -11,6 +11,7 @@
  * Copyright 2020, WetDesigns
  * 
  */
+#include <config.h>
 #include "genQ.h"
 #include <string.h>
 
@@ -20,37 +21,42 @@
 #define NEXTINQ(val) \
 ((val) >= q->end ? q->base_add : (void*)((val) + q->objectSize))
 
-GenQStatus_t GenQ_Init(GenQ_t *q, void *buffer, uint16_t objectSize, uint16_t totalObjects)
+Status_t GenQ_Init(GenQ_t *q, void *buffer, uint16_t objectSize, uint16_t totalObjects)
 {
-    if (!q || totalObjects < 2) return Queue_PARAMETER;
+    if (!q || totalObjects < 2) return Status_Param;
     *(void**)(&(q->base_add)) = buffer;
     q->next = buffer;  // modified only by source
     q->last = buffer;  // modified only by consumer
     *(uint8_t**)(&(q->end)) = (uint8_t*)buffer + objectSize * (totalObjects-1);
     *(size_t*)(&(q->objectSize)) = objectSize;
-    return Queue_OK;
+    return Status_OK;
+}
+
+void GenQ_Reset(GenQ_t *q)
+{
+    q->last = q->next;
 }
 
 // always leaves one empty space, so putter only modifies next
 // and getter only modifies last
-GenQStatus_t GenQ_Put(GenQ_t *q, void const *obj)
+Status_t GenQ_Put(GenQ_t *q, void const *obj)
 {
-    if (!q) return Queue_PARAMETER;
+    if (!q) return Status_Param;
     uint8_t *next = NEXTINQ(q->next);
-    if (next ==  q->last) return Queue_FULL;
+    if (next ==  q->last) return Status_FULL;
     memcpy(q->next, obj, q->objectSize);
     q->next = next;
-    return Queue_OK;
+    return Status_OK;
 }
 
 // Queue has data when next != last
-GenQStatus_t GenQ_Get(GenQ_t *q, void *obj)
+Status_t GenQ_Get(GenQ_t *q, void *obj)
 {
-    if (!q) return Queue_PARAMETER;
-    if (q->next == q->last) return Queue_EMPTY;
+    if (!q) return Status_Param;
+    if (q->next == q->last) return Status_EMPTY;
     memcpy(obj, q->last, q->objectSize);
     q->last = NEXTINQ(q->last);
-    return Queue_OK;    
+    return Status_OK;    
 }
 
 bool GenQ_HasData(GenQ_t *q)
