@@ -116,9 +116,9 @@ type *Allocate_##name##_Object(void) \
 Status_t Send_##name##_Object(type *obj) \
 { return Ipt_SendToIsr(name, obj); } \
 void Return_##name##_Object(type *obj) \
+{ Ipt_ReturnToUserProcess(name, obj);} \
 Status_t Dequeue_##name##_Object(type **obj) \
 { return Ipt_DequeueInIsr(name, (void**)obj); } \
-{ Ipt_ReturnToUserProcess(name, obj);} \
 Status_t Receive_##name##_Object(type **obj) \
 { return Ipt_ReceiveFromIsr(name, (void**)obj); }\
 Status_t PoolReturn_##name##_Object(type *obj) \
