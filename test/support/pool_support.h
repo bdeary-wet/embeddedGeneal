@@ -2,6 +2,6 @@
 #define _POOL_SUPPORT_H_
 #include <genPool.h>
 
-void poolTestCallback(Context_t context);
+Status_t poolTestCallback(Context_t context);
 
 #endif

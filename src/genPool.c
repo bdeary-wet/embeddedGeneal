@@ -88,9 +88,9 @@ void *GenPool_allocate(GenPool_t *self)
 // allocate a pool object and attach an explicit optional callback
 void *GenPool_allocate_with_callback(GenPool_t *self, GenCallback_t cb, Context_t context)
 {
-    int index = self->next->guard-1;
-    int first = index;
     PreBuf_t *next = self->next;
+    int index = next->guard-1;
+    int first = index;
     
     while(next->theboss)
     {
@@ -115,7 +115,7 @@ void *GenPool_allocate_with_callback(GenPool_t *self, GenCallback_t cb, Context_
     intptr_t delta = (intptr_t)next - (intptr_t)self;
     assert((delta & 0x3) == 0 );  // divisible by 4
     self->next = next; // save where we where
-    next->onRelease.cb = cb;
+    next->onRelease.callback = cb;
     // if -1 then use this object as context
     next->onRelease.context = (context.v_context==-1)?(Context_t){.v_context=(intptr_t)next->obj}: context;
     next->theboss = (uint16_t)(delta >> 2); // mark the field for recovery(validates the allocation)
@@ -130,11 +130,21 @@ Status_t GenPool_return(void *obj)
     if (id.pool != NULL)
     {
         // before returning buffer see if there is a callback
-        if (id.pre->onRelease.cb)
+        if (id.pre->onRelease.callback)
         {
-            id.pre->onRelease.cb(id.pre->onRelease.context);
-            id.pre->onRelease.cb=NULL;
+            status = id.pre->onRelease.callback(id.pre->onRelease.context);
+            // if callback returns Interrupt it means the callback reused the
+            // pool object, so don't return it
+            if (status == Status_Interrupt)
+            {
+                return Status_OK;
+            }
+            else
+            {
+                id.pre->onRelease.callback=NULL;
+            }
         }
+        // setup for instant reuse
         id.pool->next = id.pre;
         id.pre->theboss=0; // this releases the object back to the pool
     }    
@@ -153,7 +163,7 @@ CbInstance_t GenPool_extract_callback(void *obj)
     if (id.pool != NULL)
     {
         cb = id.pre->onRelease; // get copy
-        id.pre->onRelease.cb = NULL; // disable callback in obj
+        id.pre->onRelease.callback = NULL; // disable callback in obj
     }    
     return cb;
 }
@@ -165,7 +175,7 @@ Status_t GenPool_set_return_callback(void *obj, GenCallback_t cb, Context_t cont
     if (id.pool != NULL)
     {    
         id.pre->onRelease.context = context;
-        id.pre->onRelease.cb = cb;
+        id.pre->onRelease.callback = cb;
         return Status_OK;
     }
     return Status_Unexpected;

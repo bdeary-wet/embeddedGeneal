@@ -20,7 +20,7 @@ typedef struct GenQ_t
  * @brief macro for compile time definition of GenQ structure
  *  given an existing storage pointer of known type and length
  */
-#define GenQDef(name, store, len) \
+#define DefineGenQ(name, store, len) \
 enum {store##_len=len}; \
 GenQ_t name##_instance = (GenQ_t){ \
     .base_add=store, \
@@ -34,7 +34,7 @@ GenQ_t * const name = &name##_instance
  * @brief macro for defining a static queue of given type and length
  * 
  */
-#define StaticGenQDef(name, type, len) \
+#define DefineStaticGenQ(name, type, len) \
 enum {name##_len = len }; \
 STATIC type name##_space[name##_len+1] = {0}; \
 STATIC GenQ_t name##_instance = (GenQ_t){ \
@@ -44,6 +44,15 @@ STATIC GenQ_t name##_instance = (GenQ_t){ \
     .end=(uint8_t*)&name##_space[name##_len], \
     .objectSize=sizeof(type) }; \
 STATIC GenQ_t * const name = &name##_instance
+
+
+typedef struct LinkBase_t
+{
+    struct LinkBase_t *next;
+} LinkBase_t;
+
+LinkBase_t *StackPop(LinkBase_t **head);
+void StackPush(LinkBase_t **head, LinkBase_t *node);
 
 
 /**

@@ -66,7 +66,7 @@ void test_GenerationSingle(void)
     TEST_ASSERT_EQUAL(5,total);
     // calling ProcessReturnPoolObjects will free all items in queue and call their 
     // callback functions which we pointed at a mocked function.
-    poolTestCallback_Expect((Context_t){.v_context=(intptr_t)mes});
+    poolTestCallback_ExpectAndReturn((Context_t){.v_context=(intptr_t)mes}, Status_OK);
     ProcessReturnPoolObjects();
     TEST_ASSERT_EQUAL(Status_OK, GenPool_status(PIsr1Pipe, &avail, &total) );
     TEST_ASSERT_EQUAL(5,avail);
@@ -118,7 +118,7 @@ void test_GenerationDouble(void)
 
     // calling ProcessReturnPoolObjects will free all items in queue and call their 
     // callback functions which we pointed at a mocked function.
-    poolTestCallback_Expect((Context_t){.v_context=(intptr_t)mes});
+    poolTestCallback_ExpectAndReturn((Context_t){.v_context=(intptr_t)mes}, Status_OK);
     TEST_ASSERT_EQUAL(Status_OK, PoolReturn_Isr2Pipe_Object(mesRet));
     TEST_ASSERT_EQUAL(Status_OK, GenPool_status(PIsr2Pipe, &avail, &total) );
     TEST_ASSERT_EQUAL(7,avail);
@@ -165,14 +165,14 @@ void userFunction2(void)
     Status_t status = Receive_Isr2Pipe_Object(&mesRet);
     TEST_ASSERT_EQUAL(Status_OK, status); 
     int counter = mesRet->index;
-    poolTestCallback_Expect((Context_t){.v_context=(intptr_t)mesRet});      
+    poolTestCallback_ExpectAndReturn((Context_t){.v_context=(intptr_t)mesRet}, Status_OK);      
     TEST_ASSERT_EQUAL(Status_OK, PoolReturn_Isr2Pipe_Object(mesRet));    
     while(Status_OK == (status = Receive_Isr2Pipe_Object(&mesRet)))
     {
         counter++;
         TEST_ASSERT_EQUAL_MESSAGE(counter, mesRet->index, "counter should match index");
         TEST_ASSERT_EQUAL_FLOAT((float)counter+1, mesRet->d1); 
-        poolTestCallback_Expect((Context_t){.v_context=(intptr_t)mesRet});        
+        poolTestCallback_ExpectAndReturn((Context_t){.v_context=(intptr_t)mesRet}, Status_OK);        
         TEST_ASSERT_EQUAL(Status_OK, PoolReturn_Isr2Pipe_Object(mesRet));  
     }
     TEST_ASSERT_EQUAL(Status_EMPTY, status);

@@ -32,17 +32,17 @@ typedef struct
 
 #define POOL_LEN 10
 
-void myGenCallback(Context_t context)
+Status_t myGenCallback(Context_t context)
 {
     PreBufMeta_t meta = GenPool_object_meta((void*)context.v_context);
     TEST_ASSERT_EQUAL(sizeof(myBlk_t), meta.objectSize);
     TEST_ASSERT_TRUE(meta.index < POOL_LEN);
-    TEST_ASSERT_EQUAL_PTR(myGenCallback, meta.onRelease.cb);
+    TEST_ASSERT_EQUAL_PTR(myGenCallback, meta.onRelease.callback);
     TEST_ASSERT_EQUAL_MEMORY(&context, &(meta.onRelease.context), sizeof context);
+    return Status_OK;
 }
 
-
-GenPoolDefine(myPool, myBlk_t, POOL_LEN, myGenCallback);
+DefineStaticGenPool(myPool, myBlk_t, POOL_LEN, myGenCallback);
 
 void setUp(void)
 {
@@ -94,7 +94,7 @@ void test_GenPool_return(void)
     // create a new context and replace the callback in the second object
     Context_t new_context = (Context_t){.v_context=(intptr_t)obj2};
     TEST_ASSERT_EQUAL(Status_OK, GenPool_set_return_callback(obj2, poolTestCallback, new_context ) );
-    poolTestCallback_Expect(new_context);  // tell mock system to expect the call
+    poolTestCallback_ExpectAndReturn(new_context, Status_OK); // tell mock system to expect the call
     TEST_ASSERT_EQUAL(Status_OK, GenPool_return(obj2));
 }
 
@@ -102,7 +102,7 @@ void test_GenPool_return_alternate_callback(void)
 {
     Context_t context = {0};
     myBlk_t *obj1 = GenPool_allocate_with_callback(myPool, poolTestCallback, context );
-    poolTestCallback_Expect(context);  // tell mock system to expect the call
+    poolTestCallback_ExpectAndReturn(context, Status_OK);  // tell mock system to expect the call
     TEST_ASSERT_EQUAL(Status_OK, GenPool_return(obj1) );
 }
 
@@ -131,10 +131,10 @@ void test_status_fuctions(void)
     TEST_ASSERT_EQUAL(sizeof *obj2, meta2a.objectSize);    
     TEST_ASSERT_EQUAL_MEMORY(&cb1, &meta1.onRelease, sizeof cb1);
     TEST_ASSERT_EQUAL_MEMORY(&cb2, &meta2.onRelease, sizeof cb2);
-    TEST_ASSERT_EQUAL_PTR(NULL, meta1a.onRelease.cb);
-    TEST_ASSERT_EQUAL_PTR(NULL, meta2a.onRelease.cb);
-    TEST_ASSERT_EQUAL_PTR(cb1.cb, poolTestCallback);
-    TEST_ASSERT_EQUAL_PTR(cb2.cb, myGenCallback);
+    TEST_ASSERT_EQUAL_PTR(NULL, meta1a.onRelease.callback);
+    TEST_ASSERT_EQUAL_PTR(NULL, meta2a.onRelease.callback);
+    TEST_ASSERT_EQUAL_PTR(cb1.callback, poolTestCallback);
+    TEST_ASSERT_EQUAL_PTR(cb2.callback, myGenCallback);
     TEST_ASSERT_EQUAL(0, cb1.context.v_context);
     TEST_ASSERT_EQUAL((intptr_t)obj2, cb2.context.v_context);
     TEST_ASSERT_EQUAL(0, meta1a.onRelease.context.v_context);

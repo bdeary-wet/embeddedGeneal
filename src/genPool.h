@@ -63,7 +63,7 @@ typedef struct GenPool_t
 {
     PreBuf_t * volatile next; // next entry point
     PreBuf_t * const end;     // address of last object in buffer
-    GenCallback_t onRelease; // optional function to call on release
+    GenCallback_t onRelease;  // optional function to call on release
     size_t const objectSize;  // size of the object 
     size_t const cellSize;    // size of the cell holding the object
     PreBuf_t base[];     // buffer start, not part of the structure
@@ -73,7 +73,7 @@ typedef struct GenPool_t
  * @brief define a pool object pointer and the associated pool object
  *        so if we use name fooPool of type MyChunk with 10 elements
  */
-#define GenPoolDefine(name, type, len, onRel) \
+#define DefineGenPool(name, type, len, onRel) \
 enum {name##_len = (len)}; \
 typedef struct { \
     PreBuf_t genBuf; \
@@ -94,7 +94,7 @@ name##_pool_t name##_pool = (name##_pool_t){ \
 }; \
 GenPool_t * const name = (GenPool_t*)&name##_pool
 
-#define StaticGenPoolDefine(name, type, len, onRel) \
+#define DefineStaticGenPool(name, type, len, onRel) \
 enum {name##_len = (len)}; \
 typedef struct { \
     PreBuf_t genBuf; \

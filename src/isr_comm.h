@@ -21,7 +21,7 @@
  * 
  *      myMessage* Allocate_Foo_Object(void);        // get object from pool
  *      Status_t   Send_Foo_Object(myMessage *obj);  // send object to isr
- *      Status_t   Dequeue_Foo_Object(void);         // dequeue and object in isr
+ *      Status_t   Dequeue_Foo_Object(void);         // dequeue an object in isr
  *      void       Free_Foo_Object(myMessage *obj);  // used by isr to free pool object
  * 
  *      For a double direction isrProcessTarget name Bar that takes
@@ -29,7 +29,7 @@
  * 
  *      aThing*  Allocate_Bar_Object(void);           // get object from pool
  *      Status_t Send_Bar_Object(aThing *obj);        // send object to isr
- *      Status_t Dequeue_Bar_Object(void);            // dequeue and object in isr
+ *      Status_t Dequeue_Bar_Object(void);            // dequeue an object in isr
  *      void     Return_Bar_Object(aThing *obj);      // return object from isr to user
  *      Status_t Receive_Bar_Object(aThing **obj);    // dequeue returned object from isr
  *      Status_t PoolReturn_Bar_Object(aThing *obj);  // return object to pool
@@ -60,13 +60,13 @@ typedef struct IsrProcessTarget_t
  * @brief Helper macros to auto generate user/isr queue prototypes
  * 
  */
-#define DefineSingleIsrObjectQueuePrototypes(name, type) \
+#define DeclareSingleIsrObjectQueue(name, type) \
 type *Allocate_##name##_Object(void); \
 Status_t Send_##name##_Object(type *obj); \
 Status_t Dequeue_##name##_Object(type **obj); \
 void Free_##name##_Object(type *obj)
 
-#define DefineDoubleIsrObjectQueuePrototypes(name, type) \
+#define DeclareDoubleIsrObjectQueue(name, type) \
 type *Allocate_##name##_Object(void); \
 Status_t Send_#name##_Object(type *obj); \
 Status_t Dequeue_##name##_Object(type **obj); \
@@ -79,8 +79,10 @@ Status_t PoolReturn_##name##_Object(type *obj)
  * @details A Single is designed for Isr that are transmit only
  */
 #define DefineSingleIsrObjectQueue(name, type, depth, complete) \
-StaticGenPoolDefine(P##name, type, depth, complete); \
-StaticGenQDef(name##_toQ, type*, depth); \
+/* Define a pool of communication types */ \
+DefineStaticGenPool(P##name, type, depth, complete); \
+/* */ \
+DefineStaticGenQ(name##_toQ, type*, depth); \
 STATIC IsrProcessTarget_t name##_instance = (IsrProcessTarget_t){ \
     .iptPool = (GenPool_t*)&P##name##_pool, \
     .toIsrQ = &name##_toQ_instance, \
@@ -99,9 +101,9 @@ void Free_##name##_Object(type *obj) \
 
 
 #define DefineDoubleIsrObjectQueue(name, type, depth, complete) \
-StaticGenPoolDefine(P##name, type, depth, complete); \
-StaticGenQDef(name##_toQ, type*, depth); \
-StaticGenQDef(name##_fromQ, type*, depth); \
+DefineStaticGenPool(P##name, type, depth, complete); \
+DefineStaticGenQ(name##_toQ, type*, depth); \
+DefineStaticGenQ(name##_fromQ, type*, depth); \
 IsrProcessTarget_t name##_instance = (IsrProcessTarget_t){ \
     .iptPool = (GenPool_t*)&P##name##_pool, \
     .toIsrQ = &name##_toQ_instance, \

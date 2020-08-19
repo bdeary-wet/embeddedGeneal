@@ -41,15 +41,16 @@
  */
 typedef enum Status_t
 {
-    Status_BadState = -3,
+    Status_BadState = -3,   // Some invariant was violated (like assert)
     Status_Param = -2,      // A function all parameter was incorrect
     Status_Failed = -1,     // general non specifc fail
     Status_OK = 0,          // 0 means all is well
-    Status_Timeout = 1,     // expected timeout
-    Status_FULL,
-    Status_EMPTY,
-    Status_BUSY,
-    Status_Unexpected,      // did you try to free soemthing twice? or use after free?
+    Status_Interrupt,       // Interrupt expected action, Alternate return form callbacks
+    Status_Timeout,         // expected timeout
+    Status_FULL,            // A container is full, can't add to it
+    Status_EMPTY,           // A container is empty, can't remove from it
+    Status_BUSY,            // A process is busy, like an immediate timeout
+    Status_Unexpected,      // Non fatal invariant violation, Did you try to free something twice? or use after free?
 } Status_t;
 
 /**
@@ -65,13 +66,38 @@ typedef union Context_t
     void (*f_context)(union Context_t *context); // can hold a function pointer
 } Context_t;
 
-// generic callback function pointer
-typedef void (*GenCallback_t)(Context_t context);
 
-// usefull for building queues of functions or as a function return value.
+/**
+ * @brief   This is a do nothing stub that has the prototype of
+ *          the GenCallback_t function pointer used for generalizing
+ *          callback functions in the system.
+ * @details This function is not defined unless it is useful. It is left to the
+ *          User to define it in their project or test enviornment. 
+ *          Useful in testing by mocking this header.
+ * 
+ * @param context A Context_t object capable of holding and int or any 
+ *                pointer (data or code)
+ * @return Status_t value - returns one of the config.h types, 0 for Ok
+ */
+Status_t GenCallback(Context_t context);
+
+/**
+ * @brief A function pointer of general usefulness
+ * 
+ * @param context A Context_t object capable of holding and int or any 
+ *                pointer (data or code)
+ * @return Status_t value - returns one of the config.h types, 0 for Ok 
+ */
+typedef Status_t (*GenCallback_t)(Context_t context);
+
+
+/**
+ * @brief structure usefull for building queues of functions or as a function return value.
+ * 
+ */
 typedef struct CbInstance_t
 {
-    GenCallback_t cb;
+    GenCallback_t callback;
     Context_t context;
 } CbInstance_t;
 

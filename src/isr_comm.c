@@ -6,7 +6,7 @@
 uint32_t isrReqQ_dropped_objects = 0;
 uint32_t isrReqQ_errors = 0;
 
-StaticGenQDef(isrRetQ, PoolQType, RET_Q_LEN);
+DefineStaticGenQ(isrRetQ, PoolQType, RET_Q_LEN);
 
 // called in isr layer to dispose of pool objects in user space
 void ReturnPoolObject(void *obj)
