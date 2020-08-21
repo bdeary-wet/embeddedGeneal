@@ -141,7 +141,7 @@ Status_t GenPool_return(void *obj)
             }
             else
             {
-                id.pre->onRelease.callback=NULL;
+                id.pre->onRelease.callback=NULL;  // safe the mete data
             }
         }
         // setup for instant reuse

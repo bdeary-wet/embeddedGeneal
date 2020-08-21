@@ -4,11 +4,12 @@
 #include <isr_comm.h>
 #include <genPool.h>
 #include <stdlib.h>
+#include <assert.h>
 
 bool system_run = true;
 uint32_t time_tick = 0;
-uint32_t internal_error=0;
-
+uint32_t timer_internal_error=0;
+uint32_t task_internal_error=0;
 
 typedef struct TimedCall_t
 {
@@ -28,26 +29,115 @@ void User_Setup(void)
     time_tick = 0;
 }
 
-
-
 STATIC void Do_Later(void);
+STATIC void Run_Tasks(void);
 
 void User_Loop(void)
 {
     while(system_run)
     {
-        /* user main loop */
-
-        ProcessUser();
-        ProcessReturnPoolObjects();
-        time_tick++;
-        Do_Later();
+        /* user main loop order here is intentional */
+        ProcessUser();  // hard user tasks always run, may trigger isr stuff
+        ProcessReturnPoolObjects(); // possible isr deferred processing
+        Do_Later();     // timer driven event or task
+        Run_Tasks();    // queueable tasks which may include things from timer driven
+        time_tick++;    // till we have an actual timer
     }
 }
 
 STATIC Status_t retrigger_timer(Context_t context);
+STATIC Status_t requeue_task(Context_t context);
 
-DefineStaticGenPool(futureHolders, TimedCall_t, 20, retrigger_timer);
+DefineStaticGenPool(taskHolders, CbInstance_t, TASK_RUNNERS, requeue_task);
+DefineStaticGenQ(taskQ1, CbInstance_t*, TASK_RUNNERS);
+DefineStaticGenQ(taskQ2, CbInstance_t*, TASK_RUNNERS);
+GenQ_t * const taskQs[2] = {&taskQ1_instance, &taskQ2_instance};
+STATIC int taskQ=0;
+DefineStaticGenPool(futureHolders, TimedCall_t, FUTURE_RUNNERS, retrigger_timer);
+
+Status_t Run_Task(CbInstance_t cb)
+{
+    if(cb.callback)
+    {
+        CbInstance_t *holder = GenPool_allocate(taskHolders); // allocate with default requeue
+        if(holder)
+        {
+            *holder = cb;
+            assert(Status_OK == GenQ_Put(taskQs[taskQ&1], &holder));
+            return Status_OK;
+        }
+        else
+        {
+            return Status_FULL;
+        }
+    }
+    else
+    {
+        return Status_Param;  // bad parameter
+    }
+    
+}
+
+Status_t Run_Task_Once(CbInstance_t cb)
+{
+    if(cb.callback)
+    {
+        CbInstance_t *holder = GenPool_allocate_with_callback(taskHolders, NULL, (Context_t){0});
+        if(holder)
+        {
+            *holder = cb;
+            assert(Status_OK == GenQ_Put(taskQs[taskQ&1], &holder));
+            return Status_OK;
+        }
+        else
+        {
+            return Status_FULL;
+        }
+    }
+    else
+    {
+        return Status_Param;  // bad parameter
+    }
+}
+
+STATIC void Run_Tasks(void)
+{
+    int from = taskQ;
+    taskQ = (taskQ + 1)&1; // setup requeue location
+    
+    CbInstance_t *task;
+    while(Status_OK == GenQ_Get(taskQs[from],&task))
+    {
+        if(task->callback) // if function attached call it
+        {
+            // if user task signals not Ok, remove it from possible retrigger
+            if(Status_OK != task->callback(task->context))
+            {
+                GenPool_extract_callback(task); 
+            }
+        }
+
+        // try to send it back to the pool, but may be requeued by callback in mete data
+        if(GenPool_return(task)) task_internal_error++;
+    }
+}
+
+// This is a special callback attached as meta data to the task pool object
+// it requeue the task and prevents the pool return
+STATIC Status_t requeue_task(Context_t context)
+{
+    CbInstance_t *holder = (CbInstance_t*)context.v_context;
+    if(holder)
+    {
+        if(Status_OK == GenQ_Put(taskQs[taskQ], &holder))
+        {
+            return Status_Interrupt; // cancel the pool return
+        }
+        task_internal_error++; // The task was dropped unexpectedly 
+    }
+    // if got here, return Ok which will cause the pool item to be returned.
+    return Status_OK;  
+}
 
 STATIC Status_t _set_future_cb(CbInstance_t cb, uint32_t first, int32_t retrigger)
 {
@@ -99,37 +189,42 @@ STATIC Status_t retrigger_timer(Context_t context)
 // This is the timer queue processor, run all the functions past time.
 STATIC void Do_Later(void)
 {
-    LinkBase_t *newQ = (LinkBase_t*)addedTimeQ;
-    addedTimeQ = NULL;
-    while(newQ) // if new items, push them on main stack
+    static uint32_t last_time = 0xffff;
+    if(time_tick != last_time)
     {
-        LinkBase_t *node = StackPop(&newQ);
-        StackPush((LinkBase_t**)&timeQ, node);
-    }
-    // while there are items on the stack
-    while(timeQ)
-    {
-        // pop, check time
-        TimedCall_t *node = (TimedCall_t*)StackPop((LinkBase_t**)&timeQ);
-        if((node->time - time_tick) & 0x80000000) // if passed time
+        last_time = time_tick;
+        LinkBase_t *newQ = (LinkBase_t*)addedTimeQ;
+        addedTimeQ = NULL;
+        while(newQ) // if new items, push them on main stack
         {
-            if(node->cb.callback)
+            LinkBase_t *node = StackPop(&newQ);
+            StackPush((LinkBase_t**)&timeQ, node);
+        }
+        // while there are items on the stack
+        while(timeQ)
+        {
+            // pop, check time
+            TimedCall_t *node = (TimedCall_t*)StackPop((LinkBase_t**)&timeQ);
+            if((node->time - time_tick) & 0x80000000) // if passed time
             {
-                // if user function throws an interrupt. This is indication it wants
-                // to cancel repeating calls                
-                if(Status_Interrupt == node->cb.callback(node->cb.context))
+                if(node->cb.callback)
                 {
-                    GenPool_extract_callback(node);  // this disables the retrigger callback
+                    // if user function throws an interrupt. This is indication it wants
+                    // to cancel repeating calls                
+                    if(Status_Interrupt == node->cb.callback(node->cb.context))
+                    {
+                        GenPool_extract_callback(node);  // this disables the retrigger callback
+                    }
                 }
+                if (Status_OK != GenPool_return(node)) timer_internal_error++;
             }
-            if (Status_OK != GenPool_return(node)) internal_error++;
+            else
+            {
+                StackPush(&newQ, (LinkBase_t*)node);
+            }
+            
         }
-        else
-        {
-            StackPush(&newQ, (LinkBase_t*)node);
-        }
-        
+        timeQ = (TimedCall_t*)newQ;
     }
-    timeQ = (TimedCall_t*)newQ;
 }
 
