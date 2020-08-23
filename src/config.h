@@ -23,7 +23,7 @@
 #ifdef TEST
 #define STATIC
 #endif
-// STATIC, if not reassigned, should be static
+// if not testing do protections
 #ifndef STATIC 
 #define STATIC static
 #endif
@@ -52,6 +52,8 @@ typedef enum Status_t
     Status_BUSY,            // A process is busy, like an immediate timeout
     Status_Unexpected,      // Non fatal invariant violation, Did you try to free something twice? or use after free?
 } Status_t;
+
+typedef volatile unsigned int register_t;  //This needs to be set for every machine used
 
 /**
  * @brief This is a object type that can hold any single

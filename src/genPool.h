@@ -30,12 +30,12 @@
  *      There are helper macros for compile time creation of pools.
  *      To create a fixed number of objects use
  *      #define GenPoolDefine(name, type, len, onRelease)  
- *      To create a pool of objects in a given space defined by an array of
- *      fixed size.
- *      #define MakeGenPool(name, type, onRelease, space)
- * 
- * 
- * 
+ *      Tis also creates type safe functions for use with the provided type
+ *      and name.
+ *      These type safe functions may further be automatically wrapped in type
+ *      safe accessor functions wrapping the pool object itself, very handy
+ *      for passing as function pointers or callbacks.
+ *       
  * Copyright 2020, WetDesigns
  * 
  */
@@ -69,51 +69,7 @@ typedef struct GenPool_t
     PreBuf_t base[];     // buffer start, not part of the structure
 } GenPool_t;
 
-/**
- * @brief define a pool object pointer and the associated pool object
- *        so if we use name fooPool of type MyChunk with 10 elements
- */
-#define DefineGenPool(name, type, len, onRel) \
-enum {name##_len = (len)}; \
-typedef struct { \
-    PreBuf_t genBuf; \
-    type poolObject[1]; /* the MyChunk object */ \
-} name##_objtype; /* creates type fooPool_objtype */ \
-typedef struct { \
-    GenPool_t poolHeader; /* the base class object */ \
-    name##_objtype pool[name##_len]; /* the pool storage */ \
-} name##_pool_t; /* fooPool_pool_t */ \
-/* actually instantiate and initialize */   \
-name##_pool_t name##_pool = (name##_pool_t){ \
-    .pool = {[0].genBuf.guard=1}, /* zero the storage */ \
-    .poolHeader.next=(PreBuf_t *)name##_pool.pool, /* set first */ \
-    .poolHeader.end=(PreBuf_t *const)&name##_pool.pool[name##_len-1], /* assign const */ \
-    .poolHeader.objectSize=sizeof(type), /* fill in derived info in base class */ \
-    .poolHeader.cellSize = sizeof(name##_objtype), /* needed to find base from instance */ \
-    .poolHeader.onRelease=onRel, \
-}; \
-GenPool_t * const name = (GenPool_t*)&name##_pool
-
-#define DefineStaticGenPool(name, type, len, onRel) \
-enum {name##_len = (len)}; \
-typedef struct { \
-    PreBuf_t genBuf; \
-    type poolObject[1]; /* the MyChunk object */ \
-} name##_objtype; /* creates type fooPool_objtype */ \
-typedef struct { \
-    GenPool_t poolHeader; /* the base class object */ \
-    name##_objtype pool[name##_len]; /* the pool storage */ \
-} name##_pool_t; /* fooPool_pool_t */ \
-/* actually instantiate and initialize */   \
-STATIC name##_pool_t name##_pool = (name##_pool_t){ \
-    .pool = {[0].genBuf.guard=1}, /* zero the storage */ \
-    .poolHeader.next=(PreBuf_t *)name##_pool.pool, /* set first */ \
-    .poolHeader.end=(PreBuf_t *const)&name##_pool.pool[name##_len-1], /* assign const */ \
-    .poolHeader.objectSize=sizeof(type), /* fill in derived info in base class */ \
-    .poolHeader.cellSize = sizeof(name##_objtype), /* needed to find base from instance */ \
-    .poolHeader.onRelease=onRel, \
-}; \
-STATIC GenPool_t * const name = (GenPool_t*)&name##_pool
+#include <genPoolGenerators.h> // This contains templated typed genpool code generators
 
 /**
  * @brief Reset a previously defined pool
