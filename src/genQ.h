@@ -16,43 +16,11 @@ typedef struct GenQ_t
     void * const base_add;  // buffer base address
 } GenQ_t;
 
-/**
- * @brief macro for compile time definition of GenQ structure
- *  given an existing storage pointer of known type and length
- */
-#define DefineGenQ(name, store, len) \
-enum {store##_len=len}; \
-GenQ_t name##_instance = (GenQ_t){ \
-    .base_add=store, \
-    .next=(uint8_t*)store, \
-    .last=(uint8_t*)store, \
-    .end=(uint8_t*)&store[store##_len - 1], \
-    .objectSize=sizeof store[0] }; \
-GenQ_t * const name = &name##_instance    
-
-/**
- * @brief macro for defining a static queue of given type and length
- * 
- */
-#define DefineStaticGenQ(name, type, len) \
-enum {name##_len = len }; \
-STATIC type name##_space[name##_len+1] = {0}; \
-STATIC GenQ_t name##_instance = (GenQ_t){ \
-    .base_add=name##_space, \
-    .next=(uint8_t*)name##_space, \
-    .last=(uint8_t*)name##_space, \
-    .end=(uint8_t*)&name##_space[name##_len], \
-    .objectSize=sizeof(type) }; \
-STATIC GenQ_t * const name = &name##_instance
+// include the code generators for easy use
+#include <genQGenerators.h>
 
 
-typedef struct LinkBase_t
-{
-    struct LinkBase_t *next;
-} LinkBase_t;
 
-LinkBase_t *StackPop(LinkBase_t **head);
-void StackPush(LinkBase_t **head, LinkBase_t *node);
 
 
 /**

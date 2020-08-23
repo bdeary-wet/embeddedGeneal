@@ -5,6 +5,7 @@
 #include <genPool.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <linkNode.h>
 
 bool system_run = true;
 uint32_t time_tick = 0;
@@ -45,25 +46,33 @@ void User_Loop(void)
     }
 }
 
+// out static callback functions
 STATIC Status_t retrigger_timer(Context_t context);
 STATIC Status_t requeue_task(Context_t context);
 
+// Auto generate out pools and queues for tasks and timers
 DefineStaticGenPool(taskHolders, CbInstance_t, TASK_RUNNERS, requeue_task);
+DefineGenPoolWrappers(taskHolders, CbInstance_t);
 DefineStaticGenQ(taskQ1, CbInstance_t*, TASK_RUNNERS);
 DefineStaticGenQ(taskQ2, CbInstance_t*, TASK_RUNNERS);
+DefineTypeSafeGenQMethods(taskQ, CbInstance_t* );
+// need to use the instance names here because of C rule about
+// compile time constants
 GenQ_t * const taskQs[2] = {&taskQ1_instance, &taskQ2_instance};
 STATIC int taskQ=0;
+
 DefineStaticGenPool(futureHolders, TimedCall_t, FUTURE_RUNNERS, retrigger_timer);
+DefineGenPoolWrappers(futureHolders, TimedCall_t);
 
 Status_t Run_Task(CbInstance_t cb)
 {
     if(cb.callback)
     {
-        CbInstance_t *holder = GenPool_allocate(taskHolders); // allocate with default requeue
+        CbInstance_t *holder = taskHoldersAllocate(); 
         if(holder)
         {
             *holder = cb;
-            assert(Status_OK == GenQ_Put(taskQs[taskQ&1], &holder));
+            assert(Status_OK == taskQ_put(taskQs[taskQ&1], &holder));
             return Status_OK;
         }
         else
@@ -82,11 +91,11 @@ Status_t Run_Task_Once(CbInstance_t cb)
 {
     if(cb.callback)
     {
-        CbInstance_t *holder = GenPool_allocate_with_callback(taskHolders, NULL, (Context_t){0});
+        CbInstance_t *holder = taskHoldersAllocateWithCallback(NULL, (Context_t){0});
         if(holder)
         {
             *holder = cb;
-            assert(Status_OK == GenQ_Put(taskQs[taskQ&1], &holder));
+            assert(Status_OK == taskQ_put(taskQs[taskQ&1], &holder));
             return Status_OK;
         }
         else
@@ -106,7 +115,7 @@ STATIC void Run_Tasks(void)
     taskQ = (taskQ + 1)&1; // setup requeue location
     
     CbInstance_t *task;
-    while(Status_OK == GenQ_Get(taskQs[from],&task))
+    while(Status_OK == taskQ_get(taskQs[from],&task))
     {
         if(task->callback) // if function attached call it
         {
@@ -118,7 +127,7 @@ STATIC void Run_Tasks(void)
         }
 
         // try to send it back to the pool, but may be requeued by callback in mete data
-        if(GenPool_return(task)) task_internal_error++;
+        if(taskHoldersReturn(task)) task_internal_error++;
     }
 }
 
@@ -129,7 +138,7 @@ STATIC Status_t requeue_task(Context_t context)
     CbInstance_t *holder = (CbInstance_t*)context.v_context;
     if(holder)
     {
-        if(Status_OK == GenQ_Put(taskQs[taskQ], &holder))
+        if(Status_OK == taskQ_put(taskQs[taskQ], &holder))
         {
             return Status_Interrupt; // cancel the pool return
         }
@@ -141,7 +150,7 @@ STATIC Status_t requeue_task(Context_t context)
 
 STATIC Status_t _set_future_cb(CbInstance_t cb, uint32_t first, int32_t retrigger)
 {
-    TimedCall_t *holder = GenPool_allocate(futureHolders);
+    TimedCall_t *holder = futureHoldersAllocate();
     if(holder)
     {
         holder->cb = cb;
@@ -216,14 +225,19 @@ STATIC void Do_Later(void)
                         GenPool_extract_callback(node);  // this disables the retrigger callback
                     }
                 }
-                if (Status_OK != GenPool_return(node)) timer_internal_error++;
+                // try to put back into pool, but if callback in node meta still
+                // attached, this node will end up on the addedTimeQ.
+                if (Status_OK != futureHoldersReturn(node)) timer_internal_error++;
             }
             else
             {
+                // save for next time
                 StackPush(&newQ, (LinkBase_t*)node);
             }
             
         }
+        // popped it all off timeQ and pushed all that remained back on newQ
+        // so save newQ for next time.
         timeQ = (TimedCall_t*)newQ;
     }
 }

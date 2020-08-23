@@ -6,6 +6,7 @@
 #include <genQ.h>
 #include <genPool.h>
 #include <isr_comm.h>
+#include <linkNode.h>
 
 void setUp(void)
 {

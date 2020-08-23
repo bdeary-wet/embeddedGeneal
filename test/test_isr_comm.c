@@ -43,7 +43,7 @@ void test_GenerationSingle(void)
     int avail, total;
     Ipt_Reset(Isr1Pipe);    
     // peer into the pool object
-    TEST_ASSERT_EQUAL(Status_OK, GenPool_status(PIsr1Pipe, &avail, &total) );
+    TEST_ASSERT_EQUAL(Status_OK, GenPool_status((GenPool_t*)PIsr1Pipe, &avail, &total) );
     TEST_ASSERT_EQUAL(5,avail);
     TEST_ASSERT_EQUAL(5,total);
     myMes *mes = Allocate_Isr1Pipe_Object();        // get object from pool
@@ -51,7 +51,7 @@ void test_GenerationSingle(void)
     mes->flag = 1;
     mes->i1 = 42;
     TEST_ASSERT_NOT_NULL(mes);
-    TEST_ASSERT_EQUAL(Status_OK, GenPool_status(PIsr1Pipe, &avail, &total) );
+    TEST_ASSERT_EQUAL(Status_OK, GenPool_status((GenPool_t*)PIsr1Pipe, &avail, &total) );
     TEST_ASSERT_EQUAL(4,avail);
     TEST_ASSERT_EQUAL(5,total);    
     myMes *mesIsr;
@@ -61,14 +61,14 @@ void test_GenerationSingle(void)
     TEST_ASSERT_EQUAL(42, mesIsr->i1);
 
     Free_Isr1Pipe_Object(mesIsr);  // used by isr to free pool object
-    TEST_ASSERT_EQUAL(Status_OK, GenPool_status(PIsr1Pipe, &avail, &total) );
+    TEST_ASSERT_EQUAL(Status_OK, GenPool_status((GenPool_t*)PIsr1Pipe, &avail, &total) );
     TEST_ASSERT_EQUAL(4,avail);
     TEST_ASSERT_EQUAL(5,total);
     // calling ProcessReturnPoolObjects will free all items in queue and call their 
     // callback functions which we pointed at a mocked function.
     poolTestCallback_ExpectAndReturn((Context_t){.v_context=(intptr_t)mes}, Status_OK);
     ProcessReturnPoolObjects();
-    TEST_ASSERT_EQUAL(Status_OK, GenPool_status(PIsr1Pipe, &avail, &total) );
+    TEST_ASSERT_EQUAL(Status_OK, GenPool_status((GenPool_t*)PIsr1Pipe, &avail, &total) );
     TEST_ASSERT_EQUAL(5,avail);
     TEST_ASSERT_EQUAL(5,total);
 
@@ -89,7 +89,7 @@ void test_GenerationDouble(void)
     int avail, total;
     Ipt_Reset(Isr2Pipe);
     // peer into the pool object
-    TEST_ASSERT_EQUAL(Status_OK, GenPool_status(PIsr2Pipe, &avail, &total) );
+    TEST_ASSERT_EQUAL(Status_OK, GenPool_status((GenPool_t*)PIsr2Pipe, &avail, &total) );
     TEST_ASSERT_EQUAL(7,avail);
     TEST_ASSERT_EQUAL(7,total);
     aThing *mes = Allocate_Isr2Pipe_Object();        // get object from pool
@@ -97,7 +97,7 @@ void test_GenerationDouble(void)
     mes->d1 = 3.14159;
 
     TEST_ASSERT_NOT_NULL(mes);
-    TEST_ASSERT_EQUAL(Status_OK, GenPool_status(PIsr2Pipe, &avail, &total) );
+    TEST_ASSERT_EQUAL(Status_OK, GenPool_status((GenPool_t*)PIsr2Pipe, &avail, &total) );
     TEST_ASSERT_EQUAL(6,avail);
     TEST_ASSERT_EQUAL(7,total);    
     aThing *mesIsr;
@@ -107,7 +107,7 @@ void test_GenerationDouble(void)
     TEST_ASSERT_EQUAL_FLOAT(3.14159, mesIsr->d1);
 
     Return_Isr2Pipe_Object(mesIsr);  // used by isr to free pool object
-    TEST_ASSERT_EQUAL(Status_OK, GenPool_status(PIsr2Pipe, &avail, &total) );
+    TEST_ASSERT_EQUAL(Status_OK, GenPool_status((GenPool_t*)PIsr2Pipe, &avail, &total) );
     TEST_ASSERT_EQUAL(6,avail);
     TEST_ASSERT_EQUAL(7,total);
     aThing *mesRet;    
@@ -120,7 +120,7 @@ void test_GenerationDouble(void)
     // callback functions which we pointed at a mocked function.
     poolTestCallback_ExpectAndReturn((Context_t){.v_context=(intptr_t)mes}, Status_OK);
     TEST_ASSERT_EQUAL(Status_OK, PoolReturn_Isr2Pipe_Object(mesRet));
-    TEST_ASSERT_EQUAL(Status_OK, GenPool_status(PIsr2Pipe, &avail, &total) );
+    TEST_ASSERT_EQUAL(Status_OK, GenPool_status((GenPool_t*)PIsr2Pipe, &avail, &total) );
     TEST_ASSERT_EQUAL(7,avail);
     TEST_ASSERT_EQUAL(7,total);
 }
