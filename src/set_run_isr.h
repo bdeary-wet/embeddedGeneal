@@ -24,7 +24,7 @@
 #define FUTURE_RUNNERS 20
 
 extern bool system_run;
-extern uint32_t time_tick;
+extern volatile uint32_t time_tick;
 
 /**
  * @brief Schedule a function to run in the User Loop

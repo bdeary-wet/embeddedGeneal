@@ -8,9 +8,9 @@
 #include <linkNode.h>
 
 bool system_run = true;
-uint32_t time_tick = 0;
-uint32_t timer_internal_error=0;
-uint32_t task_internal_error=0;
+volatile uint32_t time_tick = 0;
+volatile uint32_t timer_internal_error=0;
+volatile uint32_t task_internal_error=0;
 
 typedef struct TimedCall_t
 {
