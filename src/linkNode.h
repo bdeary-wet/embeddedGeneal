@@ -1,9 +1,9 @@
 /**
  * @file linkNode.h
- * @author bdeary (bdeary@wetdesign.com)
+ * @author Bryce Deary (github@bd2357.org)
  * @brief generic link node base class
  * 
- * Copyright 2020, WetDesigns
+ * Copyright 2020, bdPrime
  * 
  */
 #ifndef LINKNODE_H

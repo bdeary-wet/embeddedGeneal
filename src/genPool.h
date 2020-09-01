@@ -1,6 +1,6 @@
 /**
  * @file genPool.h
- * @author bdeary (bdeary@wetdesign.com)
+ * @author Bryce Deary (github@bd2357.org)
  * @brief Generic pool object for creating a pool of any type
  * @date 2020-08-10
  * @details A General Pool is a structure that holds some fixed number 
@@ -36,7 +36,7 @@
  *      safe accessor functions wrapping the pool object itself, very handy
  *      for passing as function pointers or callbacks.
  *       
- * Copyright 2020, WetDesigns
+ * Copyright 2020, bdPrime
  * 
  */
 #ifndef _GENPOOL_H

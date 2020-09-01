@@ -1,11 +1,11 @@
 /**
  * @file isr_comm_generators.h
- * @author bdeary (bdeary@wetdesign.com)
+ * @author Bryce Deary (github@bd2357.org)
  * @brief 
  * @version 0.1
  * @date 2020-08-22
  * 
- * Copyright 2020, WetDesigns
+ * Copyright 2020, bdPrime
  * 
  */
 

@@ -1,10 +1,10 @@
 /**
  * @file test_isr_comm.c
- * @author bdeary (bdeary@wetdesign.com)
+ * @author Bryce Deary (github@bd2357.org)
  * @brief Test the comm functions for sending data between isr and user layers
  * @date 2020-08-16
  * 
- * Copyright 2020, WetDesigns
+ * Copyright 2020, bdPrime
  * 
  */
 #include "unity.h"

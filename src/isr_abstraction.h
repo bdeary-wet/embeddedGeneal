@@ -1,6 +1,6 @@
 /**
  * @file isr_abstraction.h
- * @author bdeary (bdeary@wetdesign.com)
+ * @author Bryce Deary (github@bd2357.org)
  * @brief This is a module to convert from machine depended isr overhead
  *  to our simple model.  
  * 
@@ -13,7 +13,7 @@
  * 
  * 
  * @date 2020-08-22
- * Copyright 2020, WetDesigns
+ * Copyright 2020, bdPrime
  * 
  */
 #ifndef ISR_ABSTRACTION_H

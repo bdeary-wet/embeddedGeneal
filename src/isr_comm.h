@@ -1,6 +1,6 @@
 /**
  * @file isr_comm.h
- * @author bdeary (bdeary@wetdesign.com)
+ * @author Bryce Deary (github@bd2357.org)
  * @brief module for doing communication between user and isr layers.
  * @version 0.1
  * @date 2020-08-16
@@ -34,7 +34,7 @@
  *      Status_t Receive_Bar_Object(aThing **obj);    // dequeue returned object from isr
  *      Status_t PoolReturn_Bar_Object(aThing *obj);  // return object to pool
  * 
- * Copyright 2020, WetDesigns
+ * Copyright 2020, bdPrime
  * 
  */
 #ifndef ISR_COMM_H

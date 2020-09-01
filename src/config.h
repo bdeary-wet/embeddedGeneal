@@ -8,7 +8,7 @@
 
  * @date 2020-08-16
  * 
- * Copyright 2020, WetDesigns
+ * Copyright 2020, bdPrime
  * 
  */
 #ifndef _CONFIG_H_

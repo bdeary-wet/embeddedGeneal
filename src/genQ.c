@@ -1,6 +1,6 @@
 /**
  * @file genQ.c
- * @author bdeary (bdeary@wetdesign.com)
+ * @author Bryce Deary (github@bd2357.org)
  * @brief General Q function, turn any array of objects into a Q
  * @date 2020-08-10
  * 
@@ -8,7 +8,7 @@
  * allow fast access without disabling interrupts.
  * 
  * 
- * Copyright 2020, WetDesigns
+ * Copyright 2020, bdPrime
  * 
  */
 #include <config.h>

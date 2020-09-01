@@ -1,11 +1,11 @@
 /**
  * @file genPool.c
- * @author bdeary (bdeary@wetdesign.com)
+ * @author Bryce Deary (github@bd2357.org)
  * @brief functions implimenting the general Pool
  * @version 0.1
  * @date 2020-08-10
  * 
- * Copyright 2020, WetDesigns
+ * Copyright 2020, bdPrime
  * 
  */
 #include <config.h>

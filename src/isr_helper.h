@@ -1,13 +1,13 @@
 /**
  * @file isr_helper.h
- * @author bdeary (bdeary@wetdesign.com)
+ * @author Bryce Deary (github@bd2357.org)
  * @brief Simple wrapper to allow User functions to operate
  *   protected or with elevated privledge.
  * @date 2020-08-30
  * @details Just simple function to call another fuction wrapped in
  *   a protection block. 
  *  
- * Copyright 2020, WetDesigns
+ * Copyright 2020, bdPrime
  * 
  */
 #ifndef ISR_HELPER_H

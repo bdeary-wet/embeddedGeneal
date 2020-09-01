@@ -1,10 +1,10 @@
 /**
  * @file linkNode.c
- * @author bdeary (bdeary@wetdesign.com)
+ * @author Bryce Deary (github@bd2357.org)
  * @brief generic linked list type functions that operate
  *   on the LinkBase_t base class
  * 
- * Copyright 2020, WetDesigns
+ * Copyright 2020, bdPrime
  * 
  */
 #include "linkNode.h"

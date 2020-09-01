@@ -1,6 +1,6 @@
 /**
  * @file set_run_isr.h
- * @author bdeary (bdeary@wetdesign.com)
+ * @author Bryce Deary (github@bd2357.org)
  * @brief header for a simple embedded tasker
  * @version 0.1
  * @date 2020-08-18
