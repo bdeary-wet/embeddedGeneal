@@ -13,7 +13,7 @@
 // a node base class
 typedef struct LinkBase_t
 {
-    struct LinkBase_t volatile * next;
+    struct LinkBase_t * next;
 } LinkBase_t;
 
 /**

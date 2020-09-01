@@ -56,16 +56,19 @@ typedef enum Status_t
 typedef volatile unsigned int register_t;  //This needs to be set for every machine used
 
 /**
- * @brief This is a object type that can hold any single
- *        value usefull as a context.
+ * @brief This is an object type that can hold any single
+ *        value usefull as a context, typically a pointer or int.
  * @details A union because on some systems intptr_t can't hold
  *          a function pointer correctly, and C99 does not require it.
  *          (remember segment hell from old intel 16bit days)
  */
 typedef union Context_t
 {
-    intptr_t v_context;     // can hold any data pointer or reasonable integer
-    void (*f_context)(union Context_t *context); // can hold a function pointer
+    // can hold a pointer to any data object
+    intptr_t v_context;
+    // can hold a pointer to a function, we use our GenCallback_t but user
+    // typically always casts out of a context variable for clarity.
+    Status_t (*f_context)(union Context_t context);
 } Context_t;
 
 

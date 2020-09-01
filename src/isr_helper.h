@@ -1,6 +1,18 @@
+/**
+ * @file isr_helper.h
+ * @author bdeary (bdeary@wetdesign.com)
+ * @brief Simple wrapper to allow User functions to operate
+ *   protected or with elevated privledge.
+ * @date 2020-08-30
+ * @details Just simple function to call another fuction wrapped in
+ *   a protection block. 
+ *  
+ * Copyright 2020, WetDesigns
+ * 
+ */
 #ifndef ISR_HELPER_H
 #define ISR_HELPER_H
-#include <isr_abstraction.h>
+#include <isr_abstraction.h> // to verify the calls to protection
 
 /**
  * @brief Helper function to run a user function protected from 

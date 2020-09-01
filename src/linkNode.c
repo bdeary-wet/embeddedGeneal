@@ -12,7 +12,7 @@
 // classic base class list
 LinkBase_t *StackPop(LinkBase_t **head)
 {
-    LinkBase_t *next = *head;
+    LinkBase_t * next = *head;
     if(next) // if head was not null
     {
         *head = next->next; // update head to new head
