@@ -46,17 +46,18 @@ ModelBase_t *sim_init(void)
 ModelBase_t *sim_start(ModelBase_t *model)
 {
     model = model_start(model);
-    assert(0 == pthread_create(&isr_stimulus_thread, NULL, _isr_stimulus, model));
     return model;
 }
 
 // the program main and loop, runs init, startup, then loops forever 
 // on the enable flag
-void sim_main(void)
+void *sim_main(void* arg)
 {
     // Do one time functions
     ModelBase_t *model = sim_init();
     model = sim_start(model);
+    assert(0 == pthread_create(&isr_stimulus_thread, NULL, _isr_stimulus, model));
+    model->main_tick = 0;
 
     uint32_t wd = WD_RESET;
     uint32_t last_tick = model->tick;
@@ -75,6 +76,7 @@ void sim_main(void)
             last_tick = model->tick;
             wd = WD_RESET;
         }
+        model->main_tick++;
         
         // actual background process
         if(model && model->main) 
@@ -87,4 +89,6 @@ void sim_main(void)
             model = model->diagnostics(model);
         }
     }
+    pthread_join(isr_stimulus_thread, NULL);
+    return NULL;
 }
