@@ -16,12 +16,6 @@
 #include <string.h>
 
 
-
-
-
-
-
-
 /**
  * @brief inline code to do circular buffer pointer wrap check
  */
