@@ -35,12 +35,20 @@ void *Micro_p_sim_main(void* model);
 // prototype for other user provided functions below.
 typedef struct ModelBase_t *(*model_fun_t)(struct ModelBase_t *model);
 
+typedef void (*void_func_t)(void);
+
 // Base class for the sim model shared memory object.
 typedef struct ModelBase_t
 {
     int sim_enabled;            // master run flag
     uint32_t tick;              // sim tick by isr_stimulus
     uint32_t main_tick;         // sim tick by background
+    void_func_t *isr_table;
+    uint8_t *isr_flags;
+    uint8_t isr_table_size;
+    uint8_t in_isr;
+    uint8_t isr_are_prioritized;
+    uint8_t isr_auto_clear;
     // the 4 user provided simulator functions ()
     model_fun_t setup;          // more traditional setup function
     model_fun_t isr_stimulus;   // for sim of stimulus, starts after setup

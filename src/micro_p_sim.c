@@ -31,9 +31,31 @@ void *_isr_stimulus(void *arg)
         else 
         {
             model->tick++;
-            sched_yield(); // spread out the execution
         }
-        
+        // do pretend isrs
+        {
+            model->in_isr = 1;  // lock out background in multithread (need to fix with condition vars)
+            int isr_run = 1;
+            while(isr_run)
+            {
+                isr_run = 0;
+                for(int i=0; i < model->isr_table_size; i++)
+                {
+                    if(model->isr_flags[i])
+                    {
+                        if(model->isr_table[i])
+                        {
+                            if(model->isr_auto_clear) model->isr_flags[i]=0;
+                            model->isr_table[i]();
+                            isr_run = 1;
+                            if(model->isr_are_prioritized) break;
+                        }
+                    }
+                }
+            }
+            model->in_isr = 0; // release background
+        }
+        sched_yield(); // spread out the execution
     }
     return 0;
 }
@@ -68,8 +90,10 @@ void *Micro_p_sim_main(void* arg)
     // Do one time functions
     ModelBase_t *model = sim_init();
     model = sim_start(model);
+    assert(model);
     if (model)
     {
+        model->in_isr = 1; // hold off main below from running until isr runs
         int status = pthread_create(&isr_stimulus_thread, 
                                     NULL, 
                                     _isr_stimulus, 
@@ -77,6 +101,8 @@ void *Micro_p_sim_main(void* arg)
         assert(status == 0);
         model->main_tick = 0;
     }
+    
+    sched_yield();
 
     uint32_t wd = WD_RESET;
     uint32_t last_tick = model->tick;
@@ -95,12 +121,15 @@ void *Micro_p_sim_main(void* arg)
             last_tick = model->tick;
             wd = WD_RESET;
         }
-        model->main_tick++;
-        
-        // actual background process
-        if(model && model->main_loop) 
+
+        if(!model->in_isr)  // if isr prevent background, need to do this with mutex
         {
-            model = model->main_loop(model);
+            model->main_tick++;
+            // actual background process
+            if(model && model->main_loop) 
+            {
+                model = model->main_loop(model);
+            }
         }
         // optional user diagnostic to check state
         if(model && model->diagnostics) 

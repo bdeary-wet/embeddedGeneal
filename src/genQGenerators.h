@@ -41,7 +41,7 @@ GenQ_t name##_instance = (GenQ_t){ \
     .last=(uint8_t*)name##_space, \
     .end=(uint8_t*)&name##_space[name##_len], \
     .objectSize=sizeof(type) }; \
-STATIC GenQ_t * const name = &name##_instance
+GenQ_t * const name = &name##_instance
 
 /**
  * @brief macro for defining a static queue of given type and length

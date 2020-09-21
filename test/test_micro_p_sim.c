@@ -5,6 +5,7 @@
 #include <time.h>
 
 
+
 // this is the declaration of the user derived class from the ModelBase_t class
 typedef struct MyModel_t
 {
@@ -23,7 +24,6 @@ ModelBase_t *model_setup(ModelBase_t *model)
 
 ModelBase_t *my_isr_sim(ModelBase_t *model)
 {
-    sched_yield(); 
     return model;
 }
 
@@ -37,6 +37,9 @@ ModelBase_t *my_diag(ModelBase_t *model)
     return model;
 }
 
+#define ISR_TABLE_SIZE 10
+void_func_t isr_table[ISR_TABLE_SIZE];
+uint8_t isr_flags[ISR_TABLE_SIZE];
 
 // This is the user provide function to setup the model with the
 // above functions and any initializations or invariants to the user data model.
@@ -48,6 +51,12 @@ ModelBase_t *Micro_p_sim_init(void)
         .model_base.diagnostics=my_diag,
         .model_base.isr_stimulus=my_isr_sim,
         .model_base.sim_enabled=1,
+        .model_base.isr_table_size=ISR_TABLE_SIZE,
+        .model_base.isr_table=isr_table,
+        .model_base.isr_flags=isr_flags,
+        .model_base.in_isr=0,
+        .model_base.isr_are_prioritized=0,
+        .model_base.isr_auto_clear=1,
         .my_int=42,
     };
     // any other user init goes here
@@ -65,6 +74,13 @@ void stop(void)
 
 int trials={0};
 
+void isr_example(void)
+{
+    printf("In Isr Example\n");
+    fflush(stdout);
+}
+
+
 // before each test, create a new initialized model
 void setUp(void)
 {
@@ -75,8 +91,14 @@ void setUp(void)
         .model_base.isr_stimulus=my_isr_sim,
         .model_base.sim_enabled=1,
         .model_base.main_tick=0,
+        .model_base.tick=0,
+        .model_base.in_isr=0,
         .my_int=trials++,
     };          
+
+    isr_table[2] = isr_example;
+    isr_flags[2] = 1;
+
     TEST_ASSERT_FALSE_MESSAGE(
         pthread_create(&sim_main_thread, NULL, Micro_p_sim_main, NULL) ,
         "sim_main did not start"
@@ -146,4 +168,6 @@ void test_up_then_down(void)
 {
     // do nothing, just run setup and teardown
     while(!my_model.model_base.main_tick){} // wait for background to start
+    printf("tick is %u\n", my_model.model_base.tick);
+    sched_yield(); // before we tear_down, let stuff happen
 }
