@@ -13,7 +13,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
+#include <time.h>
 #include <assert.h>
 
 pthread_t isr_stimulus_thread;
@@ -23,8 +23,17 @@ void *_isr_stimulus(void *arg)
     ModelBase_t *model =  arg;
     while(model->sim_enabled)
     {
-        if(model->isr_stimulus) model->isr_stimulus(model);
-        model->tick++;
+        if(model->isr_stimulus)
+        {
+            model->isr_stimulus(model);
+            model->tick++;
+        }
+        else 
+        {
+            model->tick++;
+            sched_yield(); // spread out the execution
+        }
+        
     }
     return 0;
 }
@@ -34,7 +43,7 @@ void *_isr_stimulus(void *arg)
 // variables and structures
 ModelBase_t *sim_init(void)
 {
-    ModelBase_t *model =(ModelBase_t*)model_init();
+    ModelBase_t *model = Micro_p_sim_init();
     model->sim_enabled = 1;
     model->tick = 0;
     return model;
@@ -45,19 +54,29 @@ ModelBase_t *sim_init(void)
 // created by init.  Also where we start our isr stimulation thread.
 ModelBase_t *sim_start(ModelBase_t *model)
 {
-    model = model_start(model);
+    if(model->setup)
+    {
+        model = model->setup(model);
+    }
     return model;
 }
 
 // the program main and loop, runs init, startup, then loops forever 
 // on the enable flag
-void *sim_main(void* arg)
+void *Micro_p_sim_main(void* arg)
 {
     // Do one time functions
     ModelBase_t *model = sim_init();
     model = sim_start(model);
-    assert(0 == pthread_create(&isr_stimulus_thread, NULL, _isr_stimulus, model));
-    model->main_tick = 0;
+    if (model)
+    {
+        int status = pthread_create(&isr_stimulus_thread, 
+                                    NULL, 
+                                    _isr_stimulus, 
+                                    model);
+        assert(status == 0);
+        model->main_tick = 0;
+    }
 
     uint32_t wd = WD_RESET;
     uint32_t last_tick = model->tick;
@@ -79,15 +98,16 @@ void *sim_main(void* arg)
         model->main_tick++;
         
         // actual background process
-        if(model && model->main) 
+        if(model && model->main_loop) 
         {
-            model = model->main(model);
+            model = model->main_loop(model);
         }
         // optional user diagnostic to check state
         if(model && model->diagnostics) 
         {
             model = model->diagnostics(model);
         }
+        sched_yield();
     }
     pthread_join(isr_stimulus_thread, NULL);
     return NULL;

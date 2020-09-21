@@ -12,6 +12,8 @@
   :build_root: build
 #  :release_build: TRUE
   :test_file_prefix: test_
+  :compile_threads: 8
+  :test_threads: 1
 
 #:release_build:
 #  :output: MyApp.out

@@ -13,26 +13,39 @@
 
 #define WD_RESET (0xffffffff)
 
-struct ModelBase_t;
+struct ModelBase_t; // forward ref
 
-struct ModelBase_t *sim_init(void);
-struct ModelBase_t *sim_start(struct ModelBase_t*);
-void *sim_main(void* arg);
+/**
+ * @brief User provided function to setup the model and set invariants
+ * 
+ * @return struct ModelBase_t* returns the model structure which is passed
+ *      to all other threads and modules as global memory space
+ *      derived from ModelBase_t.
+ */
+extern struct ModelBase_t *Micro_p_sim_init(void);
 
-extern struct ModelBase_t *model_init(void);
-extern struct ModelBase_t *model_start(struct ModelBase_t *);
+/**
+ * @brief Main method of micro_p_sim.  Run this directly or in a thread
+ * 
+ * @param pointer to the ModelBase_t derived memory area.
+ * @return void* returns NULL
+ */
+void *Micro_p_sim_main(void* model);
 
+// prototype for other user provided functions below.
 typedef struct ModelBase_t *(*model_fun_t)(struct ModelBase_t *model);
 
+// Base class for the sim model shared memory object.
 typedef struct ModelBase_t
 {
     int sim_enabled;            // master run flag
-    uint32_t tick;              // sim tick by isr
+    uint32_t tick;              // sim tick by isr_stimulus
     uint32_t main_tick;         // sim tick by background
-
-    model_fun_t isr_stimulus;   // user provided isr_stimulator task
-    model_fun_t main;           // user provided main function
-    model_fun_t diagnostics;    // user provided diagnostic function
+    // the 4 user provided simulator functions ()
+    model_fun_t setup;          // more traditional setup function
+    model_fun_t isr_stimulus;   // for sim of stimulus, starts after setup
+    model_fun_t main_loop;      // user provided main background loop
+    model_fun_t diagnostics;    // optional, runs after each loop for testing
 } ModelBase_t;
 
 #endif // MICRO_P_SIM_H
