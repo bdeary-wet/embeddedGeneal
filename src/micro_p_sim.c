@@ -34,6 +34,7 @@ void *_isr_stimulus(void *arg)
         }
         // do pretend isrs
         {
+            pthread_mutex_lock(&model->isr_mutex);
             model->in_isr = 1;  // lock out background in multithread (need to fix with condition vars)
             int isr_run = 1;
             while(isr_run)
@@ -54,6 +55,7 @@ void *_isr_stimulus(void *arg)
                 }
             }
             model->in_isr = 0; // release background
+            pthread_mutex_unlock(&model->isr_mutex);
         }
         sched_yield(); // spread out the execution
     }
@@ -65,7 +67,7 @@ void *_isr_stimulus(void *arg)
 // variables and structures
 ModelBase_t *sim_init(void)
 {
-    ModelBase_t *model = Micro_p_sim_init();
+    ModelBase_t *model = Micro_p_sim_init(); // user defined init
     model->sim_enabled = 1;
     model->tick = 0;
     return model;
@@ -89,6 +91,8 @@ void *Micro_p_sim_main(void* arg)
 {
     // Do one time functions
     ModelBase_t *model = sim_init();
+    pthread_mutex_init(&model->isr_mutex, NULL);
+    pthread_mutex_init(&model->sim_mutex, NULL);
     model = sim_start(model);
     assert(model);
     if (model)

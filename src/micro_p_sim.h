@@ -10,6 +10,9 @@
  */
 #ifndef MICRO_P_SIM_H
 #define MICRO_P_SIM_H
+#include <config.h>
+
+#include <pthread.h>
 
 #define WD_RESET (0xffffffff)
 
@@ -53,6 +56,8 @@ typedef struct ModelBase_t
     uint32_t main_tick;         // sim tick by background
     uint8_t sim_enabled;        // master run flag
     uint8_t in_isr;             // future condition var or mutex
+    pthread_mutex_t isr_mutex;  
+    pthread_mutex_t sim_mutex;
     
     // the 4 user provided simulator functions ()
     model_fun_t setup;          // more traditional setup function
