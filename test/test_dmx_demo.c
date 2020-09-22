@@ -42,7 +42,7 @@ void tearDown(void)
 
 void test_wait_50_ms(void)
 {
-    while(dd_model.ms_tick < 50) sched_yield();
+    while(dd_model.ms_tick < 5000) sched_yield();
     printf("50ms=%u, isr %u, main %u\n",
     dd_model.ms_tick,
     dd_model.model_base.tick,
