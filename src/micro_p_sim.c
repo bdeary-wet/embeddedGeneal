@@ -34,7 +34,7 @@ void *_isr_stimulus(void *arg)
         }
         // do pretend isrs
         {
-            pthread_mutex_lock(&model->isr_mutex);
+            assert(!pthread_mutex_lock(&(model->isr_mutex)));
             model->in_isr = 1;  // lock out background in multithread (need to fix with condition vars)
             int isr_run = 1;
             while(isr_run)
@@ -55,10 +55,11 @@ void *_isr_stimulus(void *arg)
                 }
             }
             model->in_isr = 0; // release background
-            pthread_mutex_unlock(&model->isr_mutex);
+            assert(!pthread_mutex_unlock(&(model->isr_mutex)));
         }
         sched_yield(); // spread out the execution
     }
+    model->in_isr = 0;
     return 0;
 }
 
@@ -68,7 +69,7 @@ void *_isr_stimulus(void *arg)
 ModelBase_t *sim_init(void)
 {
     ModelBase_t *model = Micro_p_sim_init(); // user defined init
-    model->sim_enabled = 1;
+    //model->sim_enabled = 1;
     model->tick = 0;
     return model;
 }
@@ -90,12 +91,17 @@ ModelBase_t *sim_start(ModelBase_t *model)
 void *Micro_p_sim_main(void* arg)
 {
     // Do one time functions
-    ModelBase_t *model = sim_init();
-    pthread_mutex_init(&model->isr_mutex, NULL);
-    pthread_mutex_init(&model->sim_mutex, NULL);
-    model = sim_start(model);
-    assert(model);
-    if (model)
+    ModelBase_t *model = sim_init();  // This gets the model memory from the user
+    pthread_mutex_init(&(model->isr_mutex), NULL);  // init our mutexes
+    pthread_mutex_init(&(model->sim_mutex), NULL);
+    model = sim_start(model); 
+    assert(model);  // can't be NULL
+
+    // init our internal main loop watchdog to catch stuck threads
+    uint32_t wd = WD_RESET;
+    uint32_t last_tick;
+
+    if (model) // if not NULL start sim interrupt system
     {
         model->in_isr = 1; // hold off main below from running until isr runs
         int status = pthread_create(&isr_stimulus_thread, 
@@ -103,13 +109,11 @@ void *Micro_p_sim_main(void* arg)
                                     _isr_stimulus, 
                                     model);
         assert(status == 0);
-        model->main_tick = 0;
+        model->main_tick = 0;  // clear the main loop counter
+        last_tick = model->tick; // part of WD system
     }
     
-    sched_yield();
-
-    uint32_t wd = WD_RESET;
-    uint32_t last_tick = model->tick;
+    sched_yield();  // increase probability interrupt system will run
 
     // loop until killed
     while(model && model->sim_enabled)
@@ -118,7 +122,14 @@ void *Micro_p_sim_main(void* arg)
         // do a watchdog to make sure isr is also running
         if(last_tick == model->tick) // make sure clock is running
         {
-            assert(--wd);
+            --wd;
+            assert(wd); 
+            if(!wd) 
+            {
+                model->sim_enabled = 0;
+                pthread_cancel(isr_stimulus_thread);
+                return NULL;
+            }
         }
         else
         {
@@ -126,20 +137,25 @@ void *Micro_p_sim_main(void* arg)
             wd = WD_RESET;
         }
 
-        if(!model->in_isr)  // if isr prevent background, need to do this with mutex
+        if(!model->in_isr)  // There is also a mutex
         {
+            MICRO_P_INT_DISABLE(model); // just here to catch a race
             model->main_tick++;
+            MICRO_P_INT_ENABLE(model);
             // actual background process
             if(model && model->main_loop) 
             {
                 model = model->main_loop(model);
             }
         }
-        // optional user diagnostic to check state
+
+        // optional user diagnostic to check state, 
+        // it can run regardless of isr state
         if(model && model->diagnostics) 
         {
             model = model->diagnostics(model);
         }
+        // give isr system a turn
         sched_yield();
     }
     pthread_join(isr_stimulus_thread, NULL);

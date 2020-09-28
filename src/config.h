@@ -33,6 +33,7 @@
 #define SARR_LEN(arr) ((int_fast32_t)(sizeof arr / sizeof arr[0]))
 #define DIM(arr) SARR_LEN(arr)  // common alias
 
+
 /**
  * @brief This is a master collection of all possible Status return values
  * defined for the project, Generally negative are serious while positive
@@ -89,7 +90,7 @@ Status_t GenCallback(Context_t context);
 /**
  * @brief A function pointer of general usefulness
  * 
- * @param context A Context_t object capable of holding and int or any 
+ * @param context A Context_t object capable of holding an int or any 
  *                pointer (data or code)
  * @return Status_t value - returns one of the config.h types, 0 for Ok 
  */
@@ -97,16 +98,20 @@ typedef Status_t (*GenCallback_t)(Context_t context);
 
 
 /**
- * @brief structure usefull for building queues of functions or as a function return value.
+ * @brief structure useful for building queues of functions or as a function return value.
  * 
  */
 typedef struct CbInstance_t
 {
-    GenCallback_t callback;
-    Context_t context;
+    GenCallback_t callback; // a CB function
+    Context_t context;      // a context for function
 } CbInstance_t;
 
 
+/**
+ * @brief General purpose function pointer, Also type of ISR table
+ */
+typedef void (*void_func_t)(void);
 
 
 

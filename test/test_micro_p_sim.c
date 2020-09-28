@@ -13,8 +13,16 @@ typedef struct MyModel_t
     int my_int;
 } MyModel_t;
 
+enum {ISR_TABLE_SIZE= 10,};
+void_func_t isr_table[ISR_TABLE_SIZE];
+uint8_t isr_flags[ISR_TABLE_SIZE];
+
 // this is the instantiation of the user derived class from the ModelBase_t class
-MyModel_t my_model;
+MyModel_t my_model = (MyModel_t){
+    .model_base.isr_table_size=ISR_TABLE_SIZE,
+    .model_base.isr_table=isr_table,
+    .model_base.isr_flags=isr_flags,
+};
 
 /////// The following four functions define the users model //////
 ModelBase_t *model_setup(ModelBase_t *model)
@@ -37,9 +45,7 @@ ModelBase_t *my_diag(ModelBase_t *model)
     return model;
 }
 
-#define ISR_TABLE_SIZE 10
-void_func_t isr_table[ISR_TABLE_SIZE];
-uint8_t isr_flags[ISR_TABLE_SIZE];
+
 
 // This is the user provide function to setup the model with the
 // above functions and any initializations or invariants to the user data model.
@@ -50,11 +56,11 @@ ModelBase_t *Micro_p_sim_init(void)
         .model_base.main_loop=my_main,
         .model_base.diagnostics=my_diag,
         .model_base.isr_stimulus=my_isr_sim,
-        .model_base.sim_enabled=1,
         .model_base.isr_table_size=ISR_TABLE_SIZE,
         .model_base.isr_table=isr_table,
         .model_base.isr_flags=isr_flags,
-        .model_base.in_isr=0,
+        .model_base.in_isr=1,
+        .model_base.sim_enabled=1,
         .model_base.isr_are_prioritized=0,
         .model_base.isr_auto_clear=1,
         .my_int=42,
@@ -84,28 +90,34 @@ void isr_example(void)
 // before each test, create a new initialized model
 void setUp(void)
 {
-    my_model = (MyModel_t) {
-        .model_base.setup=model_setup,
-        .model_base.main_loop=my_main,
-        .model_base.diagnostics=my_diag,
-        .model_base.isr_stimulus=my_isr_sim,
-        .model_base.sim_enabled=1,
-        .model_base.main_tick=0,
-        .model_base.tick=0,
-        .model_base.in_isr=0,
-        .my_int=trials++,
-    };          
+
+    my_model.model_base.setup=model_setup;
+    my_model.model_base.main_loop=my_main;
+    my_model.model_base.diagnostics=my_diag;
+    my_model.model_base.isr_stimulus=my_isr_sim;
+    my_model.model_base.main_tick=0;
+    my_model.model_base.tick=0;
+    my_model.model_base.in_isr=1;
+    my_model.model_base.sim_enabled=1;
+    my_model.my_int=trials++;
+
+    for(int i=0; i<ISR_TABLE_SIZE; i++) 
+    {
+        my_model.model_base.isr_flags[i]=0;
+    }
 
     isr_table[2] = isr_example;
     isr_flags[2] = 1;
 
     TEST_ASSERT_FALSE_MESSAGE(
-        pthread_create(&sim_main_thread, NULL, Micro_p_sim_main, NULL) ,
+        pthread_create(&sim_main_thread, NULL, Micro_p_sim_main, &my_model) ,
         "sim_main did not start"
     );
     printf("set up, isr %u, main %u\n", my_model.model_base.tick,
         my_model.model_base.main_tick);
-    sched_yield(); // help it get started and setup
+
+    while(!my_model.model_base.main_tick)
+        sched_yield(); // wait to get started and setup
 }
 
 void tearDown(void)
@@ -170,4 +182,9 @@ void test_up_then_down(void)
     while(!my_model.model_base.main_tick){} // wait for background to start
     printf("tick is %u\n", my_model.model_base.tick);
     sched_yield(); // before we tear_down, let stuff happen
+}
+
+void test_do_nothing(void)
+{
+    
 }

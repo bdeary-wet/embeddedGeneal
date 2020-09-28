@@ -22,28 +22,38 @@ typedef struct DmxDeviceContext_t
 
 typedef struct DmxDevice_t
 {
-    struct DmxDevice_t *next_dev;
-    uint16_t first_address; // first slot to look for
-    uint16_t slots;         // the number of slots to collect
-    uint8_t *data;
-    uint8_t *next_data;
-    GenCallback_t *cb;  // cb could be device specific or generic contect is copy of this structure
+    struct DmxDevice_t *next_dev;  // linked list of devices, NULL if last in chain
+    IsrProcessTarget_t *ipt;    // Isr process target, data queues
+    uint8_t *data;          // pointer to device specific working buffer from ipt
+    uint8_t *next_data;     // next destination in working buffer
+    uint32_t missed;
+    uint16_t first_slot;    // first slot to look for
+    uint16_t slots;     // the number of slots to collect
 } DmxDevice_t;
 
 typedef struct DmxReceiver_t
 {
     DmxDevice_t * const first_device; // pointer to first device in list
-    DmxDevice_t *current_device;      // pointer to current or next device, or NULL if complete
-    IsrProcessTarget_t *buffer_pool;  // source of our working buffers
-    uint8_t *working_buffer; // pointer to a buffer big enough to hold data for all devices
-    uint8_t *working_next;   // next location in buffer
     int16_t slot_cnt;        // slot counter advances in blocks
     uint8_t const slot0;     // slot 0 value to trigger decoding
 } DmxReceiver_t;
 
 
+/**
+ * @brief handler called by specific isr wrapper.
+ * 
+ * @param buf pointer to data to process
+ * @param buf_len length of data to process
+ * @details this is the general purpose function, called by a specific wrapper.
+ * 
+ */
+void DMX_use_raw_data(DmxReceiver_t *self, uint8_t const *raw_data, size_t raw_data_len);
 
+void DMX_process_break(DmxReceiver_t *self);
 
+void DMX_receiver_reset(DmxReceiver_t *self);
+
+void *DMX_background_device_process(DmxDevice_t *self);
 
 
 

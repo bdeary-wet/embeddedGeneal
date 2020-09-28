@@ -56,8 +56,8 @@ typedef struct ModelBase_t
     uint32_t main_tick;         // sim tick by background
     uint8_t sim_enabled;        // master run flag
     uint8_t in_isr;             // future condition var or mutex
-    pthread_mutex_t isr_mutex;  
-    pthread_mutex_t sim_mutex;
+    pthread_mutex_t isr_mutex;  // for isr sim
+    pthread_mutex_t sim_mutex;  // for other stuff
     
     // the 4 user provided simulator functions ()
     model_fun_t setup;          // more traditional setup function
@@ -65,5 +65,13 @@ typedef struct ModelBase_t
     model_fun_t main_loop;      // user provided main background loop
     model_fun_t diagnostics;    // optional, runs after each loop for testing
 } ModelBase_t;
+
+// These canbe encapsulated by system calls
+#define MICRO_P_INT_DISABLE(base_p) \
+    pthread_mutex_lock(&(((ModelBase_t*)base_p)->isr_mutex))
+
+#define MICRO_P_INT_ENABLE(base_p) \
+    pthread_mutex_unlock(&(((ModelBase_t*)base_p)->isr_mutex))
+
 
 #endif // MICRO_P_SIM_H

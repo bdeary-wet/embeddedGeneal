@@ -24,7 +24,7 @@ void Free_##name##_Object(type *obj)
 
 #define DeclareDoubleIsrObjectQueue(name, type) \
 type *Allocate_##name##_Object(void); \
-Status_t Send_#name##_Object(type *obj); \
+Status_t Send_##name##_Object(type *obj); \
 Status_t Dequeue_##name##_Object(type **obj); \
 void Return_##name##_Object(type *obj); \
 Status_t Receive_##name##_Object(type **obj); \
